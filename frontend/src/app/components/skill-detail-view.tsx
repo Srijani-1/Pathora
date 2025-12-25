@@ -1,9 +1,12 @@
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { 
-  Clock, CheckCircle2, ArrowLeft, BookOpen, 
-  Video, FileText, Code, ExternalLink 
+import {
+  Clock, CheckCircle2, ArrowLeft, BookOpen,
+  Video, FileText, Code, ExternalLink, Sparkles, Loader2
 } from 'lucide-react';
 import { Skill } from '../types/learning';
 
@@ -14,6 +17,24 @@ interface SkillDetailViewProps {
 }
 
 export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailViewProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiContent, setAiContent] = useState<string | null>(null);
+
+  const generateDeepDive = async () => {
+    setIsGenerating(true);
+    try {
+      const data = await apiFetch(`/ai/generate-lesson-content`, {
+        method: 'POST',
+        body: JSON.stringify({ lesson_id: parseInt(skill.id) })
+      });
+      setAiContent(data.content);
+      toast.success('Agent generated detailed notes! 📖');
+    } catch (error: any) {
+      toast.error('Failed to generate study notes');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'video':
@@ -43,15 +64,15 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={onBack}
           className="mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Learning Path
         </Button>
-        
+
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
             <h1>{skill.title}</h1>
@@ -60,9 +81,9 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
             </p>
           </div>
           <Badge className={getStatusColor(skill.status)}>
-            {skill.status === 'in-progress' ? 'In Progress' : 
-             skill.status === 'completed' ? 'Completed' :
-             skill.status === 'upcoming' ? 'Upcoming' : 'Locked'}
+            {skill.status === 'in-progress' ? 'In Progress' :
+              skill.status === 'completed' ? 'Completed' :
+                skill.status === 'upcoming' ? 'Upcoming' : 'Locked'}
           </Badge>
         </div>
 
@@ -79,7 +100,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3">
         {skill.status === 'upcoming' && (
-          <Button 
+          <Button
             onClick={() => onUpdateStatus(skill.id, 'in-progress')}
             className="bg-[#4338ca] hover:bg-[#4338ca]/90"
           >
@@ -88,22 +109,53 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
         )}
         {skill.status === 'in-progress' && (
           <>
-            <Button 
+            <Button
               onClick={() => onUpdateStatus(skill.id, 'completed')}
               className="bg-[#10b981] hover:bg-[#10b981]/90"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Mark as Complete
             </Button>
-            <Button variant="outline">Continue Learning</Button>
           </>
         )}
-        {skill.status === 'completed' && (
-          <Button variant="outline">
-            Review This Skill
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          className="border-[#4338ca]/30 text-[#4338ca] hover:bg-[#4338ca]/5"
+          onClick={generateDeepDive}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4 mr-2" />
+          )}
+          {aiContent ? 'Regenerate Notes' : 'Generate Detailed Notes (AI)'}
+        </Button>
       </div>
+
+      {/* AI Deep Dive Notes */}
+      {(aiContent || isGenerating) && (
+        <Card className="border-[#4338ca]/30 bg-[#4338ca]/5 shadow-inner">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-[#4338ca]" />
+              Agent's Deep Dive Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isGenerating ? (
+              <div className="space-y-4 py-8 flex flex-col items-center">
+                <Loader2 className="w-10 h-10 text-[#4338ca] animate-spin" />
+                <p className="text-muted-foreground animate-pulse">Our agent is analyzing the topic and writing comprehensive notes...</p>
+              </div>
+            ) : (
+              <div className="prose prose-indigo dark:prose-invert max-w-none whitespace-pre-wrap font-sans text-sm md:text-base leading-relaxed">
+                {aiContent}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Why It Matters */}
       <Card>

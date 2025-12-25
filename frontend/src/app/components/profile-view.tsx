@@ -19,15 +19,18 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(userName);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editedName.trim()) {
       toast.error('Name cannot be empty');
       return;
     }
-    
-    onUpdateProfile(editedName);
-    setIsEditing(false);
-    toast.success('Profile updated successfully');
+
+    try {
+      await onUpdateProfile(editedName);
+      setIsEditing(false);
+    } catch (error) {
+      toast.error('Failed to update profile');
+    }
   };
 
   const handleCancel = () => {

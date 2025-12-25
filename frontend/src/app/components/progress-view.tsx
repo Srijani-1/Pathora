@@ -1,14 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { 
-  TrendingUp, Clock, Target, Award,
-  Calendar, Flame
-} from 'lucide-react';
+import { Progress } from './ui/progress';
+import { TrendingUp, Clock, Target, Award, Calendar, Flame } from 'lucide-react';
 import { UserProgress, Skill } from '../types/learning';
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ProgressViewProps {
   userProgress: UserProgress;
@@ -22,29 +17,29 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
 
   // Weekly progress data
   const weeklyData = [
-    { day: 'Mon', hours: 2.5 },
-    { day: 'Tue', hours: 1.5 },
-    { day: 'Wed', hours: 2 },
-    { day: 'Thu', hours: 1 },
-    { day: 'Fri', hours: 2.5 },
-    { day: 'Sat', hours: 3 },
-    { day: 'Sun', hours: 1.5 },
+    { day: 'Mon', hours: 0 },
+    { day: 'Tue', hours: 0 },
+    { day: 'Wed', hours: 0 },
+    { day: 'Thu', hours: 0 },
+    { day: 'Fri', hours: 0 },
+    { day: 'Sat', hours: 0 },
+    { day: 'Sun', hours: 0 },
   ];
 
   // Skills by status
   const statusData = [
-    { 
-      name: 'Completed', 
+    {
+      name: 'Completed',
       value: skills.filter(s => s.status === 'completed').length,
       color: '#10b981'
     },
-    { 
-      name: 'In Progress', 
+    {
+      name: 'In Progress',
       value: skills.filter(s => s.status === 'in-progress').length,
       color: '#f59e0b'
     },
-    { 
-      name: 'Upcoming', 
+    {
+      name: 'Upcoming',
       value: skills.filter(s => s.status === 'upcoming').length,
       color: '#14b8a6'
     },
@@ -52,10 +47,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
 
   // Monthly progress trend
   const monthlyData = [
-    { month: 'Nov', skills: 0 },
-    { month: 'Dec', skills: 2 },
-    { month: 'Jan', skills: 5 },
-    { month: 'Feb', skills: 8 },
+    { month: 'Start', skills: 0 },
   ];
 
   return (
@@ -105,13 +97,14 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <CardDescription>Total Hours</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <Clock className="w-5 h-5 text-[#14b8a6]" />
-              <span className="text-2xl font-semibold">{userProgress.totalHoursSpent}</span>
-              <span className="text-muted-foreground">hrs</span>
+              <span className="text-2xl font-semibold">0</span>
+              <span className="text-muted-foreground">/ {userProgress.weeklyGoalHours}h</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Time invested
+            <Progress value={0} className="h-2" />
+            <p className="text-sm text-muted-foreground mt-2">
+              Start a lesson to track your hours
             </p>
           </CardContent>
         </Card>
@@ -149,16 +142,16 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <XAxis 
-                  dataKey="day" 
+                <XAxis
+                  dataKey="day"
                   tick={{ fill: 'var(--foreground)', fontSize: 12 }}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fill: 'var(--foreground)', fontSize: 12 }}
                   label={{ value: 'Hours', angle: -90, position: 'insideLeft' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
+                <Tooltip
+                  contentStyle={{
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
                     borderRadius: '8px'
@@ -191,30 +184,31 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                   data={statusData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
+                  labelLine={true}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
+                  paddingAngle={5}
                 >
                   {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
+                <Tooltip
+                  contentStyle={{
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
                     borderRadius: '8px'
                   }}
                 />
+                <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
               {statusData.map((item) => (
                 <div key={item.name} className="flex items-center gap-2 text-sm">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
+                  <div
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: item.color }}
                   />
                   <span className="text-muted-foreground">{item.name}</span>
@@ -236,25 +230,25 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <XAxis 
-                  dataKey="month" 
+                <XAxis
+                  dataKey="month"
                   tick={{ fill: 'var(--foreground)', fontSize: 12 }}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fill: 'var(--foreground)', fontSize: 12 }}
                   label={{ value: 'Skills', angle: -90, position: 'insideLeft' }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
+                <Tooltip
+                  contentStyle={{
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
                     borderRadius: '8px'
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="skills" 
-                  stroke="#14b8a6" 
+                <Line
+                  type="monotone"
+                  dataKey="skills"
+                  stroke="#14b8a6"
                   strokeWidth={2}
                   dot={{ fill: '#14b8a6', r: 4 }}
                 />
@@ -297,7 +291,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                   <p className="text-sm text-muted-foreground">Days with activity</p>
                 </div>
               </div>
-              <span className="text-2xl font-semibold">22</span>
+              <span className="text-2xl font-semibold">0</span>
             </div>
 
             <div className="flex items-center justify-between py-3">
@@ -310,7 +304,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                   <p className="text-sm text-muted-foreground">Per active day</p>
                 </div>
               </div>
-              <span className="text-2xl font-semibold">1.9h</span>
+              <span className="text-2xl font-semibold">0h</span>
             </div>
           </div>
         </CardContent>

@@ -9,6 +9,8 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Code2, Plus, FolderOpen, Clock, Calendar, CheckCircle2, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '../lib/api';
+import { useEffect } from 'react';
 
 interface Project {
   id: string;
@@ -22,31 +24,35 @@ interface Project {
 }
 
 export function ProjectsView() {
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('user_projects');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: '1',
-        title: 'Personal Portfolio Website',
-        description: 'Build a responsive portfolio to showcase your projects and skills',
-        status: 'completed',
-        difficulty: 'beginner',
-        startDate: '2024-01-15',
-        estimatedHours: '10-15',
-        technologies: ['HTML', 'CSS', 'JavaScript']
-      },
-      {
-        id: '2',
-        title: 'Task Management App',
-        description: 'Create a full-stack todo application with user authentication',
-        status: 'in-progress',
-        difficulty: 'intermediate',
-        startDate: '2024-02-01',
-        estimatedHours: '20-30',
-        technologies: ['React', 'Node.js', 'MongoDB']
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
+        if (!user.id) return;
+        const data = await apiFetch(`/projects/user/${user.id}`);
+        // Map backend fields to frontend interface if needed
+        const mapped = data.map((p: any) => ({
+          id: p.id.toString(),
+          title: p.title,
+          description: p.description,
+          status: p.status,
+          difficulty: p.difficulty,
+          startDate: p.start_date,
+          estimatedHours: p.estimated_hours,
+          technologies: p.technologies.split(',').map((t: string) => t.trim())
+        }));
+        setProjects(mapped);
+      } catch (error) {
+        toast.error('Failed to fetch projects');
+      } finally {
+        setLoading(false);
       }
-    ];
-  });
+    };
+    fetchProjects();
+  }, []);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -57,55 +63,80 @@ export function ProjectsView() {
     technologies: ''
   });
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProject.title || !newProject.description || !newProject.estimatedHours) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const project: Project = {
-      id: Date.now().toString(),
-      title: newProject.title,
-      description: newProject.description,
-      status: 'planning',
-      difficulty: newProject.difficulty,
-      startDate: new Date().toISOString(),
-      estimatedHours: newProject.estimatedHours,
-      technologies: newProject.technologies.split(',').map(t => t.trim()).filter(Boolean)
-    };
+    try {
+      const user = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
+      const projectData = {
+        title: newProject.title,
+        description: newProject.description,
+        difficulty: newProject.difficulty,
+        estimated_hours: newProject.estimatedHours,
+        technologies: newProject.technologies
+      };
 
-    const updated = [...projects, project];
-    setProjects(updated);
-    localStorage.setItem('user_projects', JSON.stringify(updated));
-    
-    setDialogOpen(false);
-    setNewProject({
-      title: '',
-      description: '',
-      difficulty: 'beginner',
-      estimatedHours: '',
-      technologies: ''
-    });
-    
-    toast.success('Project created successfully! 🎉');
+      const created = await apiFetch(`/projects/?user_id=${user.id}`, {
+        method: 'POST',
+        body: JSON.stringify(projectData)
+      });
+
+      const mapped: Project = {
+        id: created.id.toString(),
+        title: created.title,
+        description: created.description,
+        status: created.status,
+        difficulty: created.difficulty,
+        startDate: created.start_date,
+        estimatedHours: created.estimated_hours,
+        technologies: created.technologies.split(',').map((t: string) => t.trim())
+      };
+
+      setProjects(prev => [...prev, mapped]);
+      setDialogOpen(false);
+      setNewProject({
+        title: '',
+        description: '',
+        difficulty: 'beginner',
+        estimatedHours: '',
+        technologies: ''
+      });
+
+      toast.success('Project created successfully! 🎉');
+    } catch (error) {
+      toast.error('Failed to create project');
+    }
   };
 
-  const handleStartProject = (projectId: string) => {
-    const updated = projects.map(p => 
-      p.id === projectId ? { ...p, status: 'in-progress' as const } : p
-    );
-    setProjects(updated);
-    localStorage.setItem('user_projects', JSON.stringify(updated));
-    toast.success('Project started! Good luck! 🚀');
+  const handleStartProject = async (projectId: string) => {
+    try {
+      await apiFetch(`/projects/${projectId}/status?status=in-progress`, {
+        method: 'PUT'
+      });
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, status: 'in-progress' as const } : p
+      ));
+      toast.success('Project started! Good luck! 🚀');
+    } catch (error) {
+      toast.error('Failed to update project status');
+    }
   };
 
-  const handleCompleteProject = (projectId: string) => {
-    const updated = projects.map(p => 
-      p.id === projectId ? { ...p, status: 'completed' as const } : p
-    );
-    setProjects(updated);
-    localStorage.setItem('user_projects', JSON.stringify(updated));
-    toast.success('Project completed! Amazing work! 🎉');
+  const handleCompleteProject = async (projectId: string) => {
+    try {
+      await apiFetch(`/projects/${projectId}/status?status=completed`, {
+        method: 'PUT'
+      });
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, status: 'completed' as const } : p
+      ));
+      toast.success('Project completed! Amazing work! 🎉');
+    } catch (error) {
+      toast.error('Failed to update project status');
+    }
   };
 
   const getStatusColor = (status: string) => {

@@ -1,9 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
-import { 
-  TrendingUp, Clock, Flame, Target, 
-  CheckCircle2, Circle, ArrowRight, Trophy 
+import {
+  TrendingUp, Clock, Flame, Target,
+  CheckCircle2, Circle, ArrowRight, Trophy
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { UserProgress, Skill } from '../types/learning';
@@ -73,12 +73,12 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
           <CardContent>
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-5 h-5 text-[#14b8a6]" />
-              <span className="text-2xl font-semibold">8</span>
+              <span className="text-2xl font-semibold">0</span>
               <span className="text-muted-foreground">/ {userProgress.weeklyGoalHours}h</span>
             </div>
-            <Progress value={(8 / userProgress.weeklyGoalHours) * 100} className="h-2" />
+            <Progress value={0} className="h-2" />
             <p className="text-sm text-muted-foreground mt-2">
-              2 hours to reach your goal
+              Start learning to track your progress
             </p>
           </CardContent>
         </Card>
@@ -129,10 +129,10 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
                 </span>
                 <Badge variant="outline">{inProgressSkill.category}</Badge>
               </div>
-              <Progress value={45} className="h-2" />
+              <Progress value={0} className="h-2" />
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">45% complete</span>
-                <Button 
+                <span className="text-sm text-muted-foreground">0% complete</span>
+                <Button
                   onClick={() => onNavigate('skills', inProgressSkill.id)}
                   className="bg-[#4338ca] hover:bg-[#4338ca]/90"
                 >
@@ -170,8 +170,8 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
                 </div>
               </button>
             ))}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full mt-2"
               onClick={() => onNavigate('learning-path')}
             >
@@ -188,29 +188,26 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
           </CardHeader>
           <CardContent className="space-y-3">
             {userProgress.milestones.map((milestone) => {
-              const Icon = milestone.icon === 'Trophy' ? Trophy : 
-                           milestone.icon === 'Flame' ? Flame :
-                           milestone.icon === 'Clock' ? Clock : Target;
+              const Icon = milestone.icon === 'Trophy' ? Trophy :
+                milestone.icon === 'Flame' ? Flame :
+                  milestone.icon === 'Clock' ? Clock : Target;
               return (
                 <div
                   key={milestone.id}
-                  className={`p-3 rounded-lg border ${
-                    milestone.achievedDate 
-                      ? 'bg-[#10b981]/5 border-[#10b981]/20' 
-                      : 'border-border bg-muted/50'
-                  }`}
+                  className={`p-3 rounded-lg border ${milestone.achievedDate
+                    ? 'bg-[#10b981]/5 border-[#10b981]/20'
+                    : 'border-border bg-muted/50'
+                    }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      milestone.achievedDate 
-                        ? 'bg-[#10b981]/10' 
-                        : 'bg-muted'
-                    }`}>
-                      <Icon className={`w-5 h-5 ${
-                        milestone.achievedDate 
-                          ? 'text-[#10b981]' 
-                          : 'text-muted-foreground'
-                      }`} />
+                    <div className={`p-2 rounded-lg ${milestone.achievedDate
+                      ? 'bg-[#10b981]/10'
+                      : 'bg-muted'
+                      }`}>
+                      <Icon className={`w-5 h-5 ${milestone.achievedDate
+                        ? 'text-[#10b981]'
+                        : 'text-muted-foreground'
+                        }`} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">

@@ -13,9 +13,11 @@ import { RecommendationsView } from './components/recommendations-view';
 import { ResourcesView } from './components/resources-view';
 import { ProfileView } from './components/profile-view';
 import { ProjectsView } from './components/projects-view';
-import { learningPaths, initialUserProgress, recommendations } from './data/mockData';
+// import { learningPaths, initialUserProgress, recommendations } from './data/mockData';
 import { UserProgress, Skill } from './types/learning';
 import { toast } from 'sonner';
+import { apiFetch } from './lib/api';
+import { BookOpen } from 'lucide-react';
 
 type View = 'dashboard' | 'learning-path' | 'skills' | 'progress' | 'resources' | 'profile' | 'projects';
 
@@ -26,19 +28,93 @@ export default function App() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
-  const [userProgress, setUserProgress] = useState<UserProgress>(initialUserProgress);
-  const [skills, setSkills] = useState<Skill[]>(learningPaths[0].skills);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  const fetchInitialData = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
+      if (!user.id) return;
+
+      const [progressData, pathsData] = await Promise.all([
+        apiFetch(`/progress/overview/${user.id}`),
+        apiFetch(`/learning-paths/?user_id=${user.id}`)
+      ]);
+
+      setUserProgress(progressData);
+
+      if (pathsData && pathsData.length > 0) {
+        const allSkills: Skill[] = pathsData.flatMap((path: any) =>
+          (path.modules || []).flatMap((module: any) =>
+            (module.lessons || []).map((lesson: any) => ({
+              id: lesson.id.toString(),
+              title: lesson.title,
+              description: lesson.content || '',
+              category: module.title,
+              difficulty: lesson.difficulty || 'beginner',
+              status: lesson.status || 'upcoming',
+              estimatedTime: lesson.estimated_time || '1 week',
+              prerequisites: lesson.prerequisites_list || [],
+              resources: [],
+              whyItMatters: 'This skill is essential for your career path.',
+              whatYouLearn: ['Core concepts', 'Practical application', 'Industry standards']
+            }))
+          )
+        );
+        setSkills(allSkills);
+      } else {
+        setSkills([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch initial data:', error);
+      toast.error('Connect to backend failed.');
+    } finally {
+      setUserProgress(prev => prev || {
+        currentPath: '',
+        completedSkills: [],
+        inProgressSkills: [],
+        totalHoursSpent: 0,
+        weeklyStreak: 0,
+        weeklyGoalHours: 10,
+        joinedDate: new Date().toISOString(),
+        lastActivityDate: new Date().toISOString(),
+        milestones: []
+      });
+    }
+  };
+
   useEffect(() => {
-    // Check authentication
+    // Safety timeout: Ensure loading screen clears after 5s even if API hangs
+    const timeout = setTimeout(() => {
+      // Don't set demo data on timeout anymore
+    }, 5000);
+
+    // Check authentication - Disabled to force login on reload
+    /*
     const loggedInUser = localStorage.getItem('logged_in_user');
     if (loggedInUser) {
-      const userData = JSON.parse(loggedInUser);
-      setIsAuthenticated(true);
-      setUserEmail(userData.email);
-      setUserName(userData.name);
+      try {
+        const userData = JSON.parse(loggedInUser);
+        if (!userData.id) {
+          // Stale data from old frontend, clear it
+          handleLogout();
+          return;
+        }
+        setIsAuthenticated(true);
+        setUserEmail(userData.email);
+        setUserName(userData.full_name || userData.name);
+        fetchInitialData();
+      } catch (e) {
+        handleLogout();
+      }
     }
+    */
+
+    // Always clear session on reload to force login page
+    localStorage.removeItem('logged_in_user');
+    localStorage.removeItem('access_token');
+    setIsAuthenticated(false);
 
     // Check if user has completed onboarding
     const onboardingComplete = localStorage.getItem('onboarding_complete');
@@ -55,16 +131,15 @@ export default function App() {
   }, []);
 
   const handleLogin = (email: string, name: string) => {
-    const userData = { email, name };
-    localStorage.setItem('logged_in_user', JSON.stringify(userData));
-    localStorage.setItem('user_joined_date', new Date().toISOString());
     setIsAuthenticated(true);
     setUserEmail(email);
     setUserName(name);
+    fetchInitialData();
   };
 
   const handleLogout = () => {
     localStorage.removeItem('logged_in_user');
+    localStorage.removeItem('access_token');
     localStorage.removeItem('onboarding_complete');
     setIsAuthenticated(false);
     setUserEmail('');
@@ -74,24 +149,37 @@ export default function App() {
     toast.success('Logged out successfully');
   };
 
-  const handleUpdateProfile = (name: string) => {
-    setUserName(name);
-    const userData = { email: userEmail, name };
-    localStorage.setItem('logged_in_user', JSON.stringify(userData));
-    
-    // Update in users array too
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.email === userEmail ? { ...u, name } : u
-    );
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+  const handleUpdateProfile = async (name: string) => {
+    try {
+      const response = await fetch('http://localhost:8000/users/profile/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({ full_name: name }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile');
+
+      const data = await response.json();
+      setUserName(data.full_name);
+
+      const userData = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
+      userData.full_name = data.full_name;
+      localStorage.setItem('logged_in_user', JSON.stringify(userData));
+
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      toast.error(error.message);
+    }
   };
 
   const handleOnboardingComplete = (data: OnboardingData) => {
-    console.log('Onboarding data:', data);
     localStorage.setItem('onboarding_complete', 'true');
     setHasCompletedOnboarding(true);
-    toast.success('Welcome to your learning journey! 🎉');
+    fetchInitialData(); // Load the AI generated path immediately
+    toast.success('Welcome to your personalized learning journey! 🎉');
   };
 
   const handleNavigate = (view: string, skillId?: string) => {
@@ -111,111 +199,138 @@ export default function App() {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  const handleUpdateSkillStatus = (skillId: string, status: 'in-progress' | 'completed') => {
-    setSkills(prevSkills => 
-      prevSkills.map(skill => 
-        skill.id === skillId ? { ...skill, status } : skill
-      )
-    );
+  const handleUpdateSkillStatus = async (skillId: string, status: 'in-progress' | 'completed') => {
+    try {
+      const user = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
+      if (!user.id) return;
 
-    setUserProgress(prev => {
-      const updated = { ...prev };
-      
-      if (status === 'in-progress' && !prev.inProgressSkills.includes(skillId)) {
-        updated.inProgressSkills = [...prev.inProgressSkills, skillId];
-      }
-      
       if (status === 'completed') {
-        updated.completedSkills = [...prev.completedSkills, skillId];
-        updated.inProgressSkills = prev.inProgressSkills.filter(id => id !== skillId);
+        await fetch(`http://localhost:8000/progress/complete/${skillId}?user_id=${user.id}&time_spent=1.0`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          }
+        });
       }
-      
-      return updated;
-    });
 
-    if (status === 'completed') {
-      toast.success('Skill completed! 🎉', {
-        description: 'Great job! Keep up the momentum.'
+      setSkills(prevSkills =>
+        prevSkills.map(skill =>
+          skill.id === skillId ? { ...skill, status } : skill
+        )
+      );
+
+      setUserProgress(prev => {
+        if (!prev) return null;
+        const updated = { ...prev };
+
+        if (status === 'in-progress' && !prev.inProgressSkills.includes(skillId)) {
+          updated.inProgressSkills = [...prev.inProgressSkills, skillId];
+        }
+
+        if (status === 'completed') {
+          updated.completedSkills = [...prev.completedSkills, skillId];
+          updated.inProgressSkills = prev.inProgressSkills.filter(id => id !== skillId);
+        }
+
+        return updated;
       });
-    } else if (status === 'in-progress') {
-      toast.success('Skill started! 🚀', {
-        description: 'You\'re on your way to mastering this skill.'
-      });
+
+      if (status === 'completed') {
+        toast.success('Skill completed! 🎉', {
+          description: 'Great job! Keep up the momentum.'
+        });
+      } else if (status === 'in-progress') {
+        toast.success('Skill started! 🚀', {
+          description: 'You\'re on your way to mastering this skill.'
+        });
+      }
+    } catch (error: any) {
+      toast.error('Failed to update progress');
     }
   };
 
-  const completionPercentage = Math.round(
+  const completionPercentage = userProgress && skills.length > 0 ? Math.round(
     (userProgress.completedSkills.length / skills.length) * 100
-  );
+  ) : 0;
 
-  if (!isAuthenticated) {
-    return <AuthView onLogin={handleLogin} />;
-  }
-
-  if (!hasCompletedOnboarding) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+  if (isAuthenticated && hasCompletedOnboarding && !userProgress) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4338ca]"></div>
+      </div>
+    );
   }
 
   const selectedSkill = selectedSkillId ? skills.find(s => s.id === selectedSkillId) : null;
 
   return (
     <ThemeProvider attribute="class" defaultTheme={theme}>
-      <DashboardLayout
-        currentView={selectedSkill ? 'skills' : currentView}
-        onNavigate={handleNavigate}
-        theme={theme}
-        onThemeToggle={handleThemeToggle}
-        progress={completionPercentage}
-        currentGoal="Frontend Development"
-        userName={userName}
-      >
-        {selectedSkill ? (
-          <SkillDetailView
-            skill={selectedSkill}
-            onBack={() => setSelectedSkillId(null)}
-            onUpdateStatus={handleUpdateSkillStatus}
-          />
-        ) : currentView === 'dashboard' ? (
-          <DashboardView
-            userProgress={userProgress}
-            currentSkills={skills}
-            onNavigate={handleNavigate}
-          />
-        ) : currentView === 'learning-path' ? (
-          <LearningPathView
-            skills={skills}
-            onSkillClick={(skillId) => handleNavigate('skills', skillId)}
-          />
-        ) : currentView === 'skills' ? (
-          <SkillsView
-            skills={skills}
-            onSkillClick={(skillId) => handleNavigate('skills', skillId)}
-          />
-        ) : currentView === 'progress' ? (
-          <ProgressView
-            userProgress={userProgress}
-            skills={skills}
-          />
-        ) : currentView === 'resources' ? (
-          <ResourcesView />
-        ) : currentView === 'profile' ? (
-          <ProfileView
-            userEmail={userEmail}
-            userName={userName}
-            onLogout={handleLogout}
-            onUpdateProfile={handleUpdateProfile}
-          />
-        ) : currentView === 'projects' ? (
-          <ProjectsView />
-        ) : (
-          <RecommendationsView
-            skills={skills}
-            recommendations={recommendations}
-            onSkillClick={(skillId) => handleNavigate('skills', skillId)}
-            userProgress={userProgress}
-          />
-        )}
-      </DashboardLayout>
+      {!isAuthenticated ? (
+        <AuthView onLogin={handleLogin} />
+      ) : !hasCompletedOnboarding ? (
+        <Onboarding onComplete={handleOnboardingComplete} />
+      ) : (
+        <DashboardLayout
+          currentView={selectedSkill ? 'skills' : currentView}
+          onNavigate={handleNavigate}
+          theme={theme}
+          onThemeToggle={handleThemeToggle}
+          progress={completionPercentage}
+          currentGoal="Frontend Development"
+          userName={userName}
+        >
+          {selectedSkill ? (
+            <SkillDetailView
+              skill={selectedSkill}
+              onBack={() => setSelectedSkillId(null)}
+              onUpdateStatus={handleUpdateSkillStatus}
+            />
+          ) : currentView === 'dashboard' ? (
+            <DashboardView
+              userProgress={userProgress!}
+              currentSkills={skills}
+              onNavigate={handleNavigate}
+            />
+          ) : currentView === 'learning-path' ? (
+            <LearningPathView
+              skills={skills}
+              onSkillClick={(skillId) => handleNavigate('skills', skillId)}
+              onRefresh={fetchInitialData}
+            />
+          ) : currentView === 'skills' ? (
+            <SkillsView
+              skills={skills}
+              onSkillClick={(skillId) => handleNavigate('skills', skillId)}
+            />
+          ) : currentView === 'progress' ? (
+            <ProgressView
+              userProgress={userProgress!}
+              skills={skills}
+            />
+          ) : currentView === 'resources' ? (
+            <ResourcesView />
+          ) : currentView === 'profile' ? (
+            <ProfileView
+              userEmail={userEmail}
+              userName={userName}
+              onLogout={handleLogout}
+              onUpdateProfile={handleUpdateProfile}
+            />
+          ) : currentView === 'projects' ? (
+            <ProjectsView />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <BookOpen className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold">No recommendations yet</h3>
+              <p className="text-muted-foreground mt-2 max-w-xs">
+                Complete more skills to get personalized recommendations for your journey.
+              </p>
+            </div>
+          )}
+        </DashboardLayout>
+      )}
       <Toaster richColors position="top-right" />
     </ThemeProvider>
   );

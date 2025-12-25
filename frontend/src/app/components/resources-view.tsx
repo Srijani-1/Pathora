@@ -2,68 +2,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { 
-  BookOpen, Video, FileText, Code, 
-  ExternalLink, Search, Filter 
+import {
+  BookOpen, Video, FileText, Code,
+  ExternalLink, Search, Filter
 } from 'lucide-react';
+import { apiFetch } from '../lib/api';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+
+const iconMap: Record<string, any> = {
+  BookOpen, Video, FileText, Code
+};
 
 export function ResourcesView() {
-  const resources = [
-    {
-      id: '1',
-      title: 'MDN Web Docs',
-      description: 'Comprehensive documentation for web technologies',
-      type: 'Documentation',
-      category: 'Foundation',
-      url: '#',
-      icon: BookOpen
-    },
-    {
-      id: '2',
-      title: 'React Official Documentation',
-      description: 'The official React documentation and tutorials',
-      type: 'Documentation',
-      category: 'Framework',
-      url: '#',
-      icon: BookOpen
-    },
-    {
-      id: '3',
-      title: 'JavaScript.info',
-      description: 'Modern JavaScript tutorial from basics to advanced',
-      type: 'Tutorial',
-      category: 'Foundation',
-      url: '#',
-      icon: FileText
-    },
-    {
-      id: '4',
-      title: 'Frontend Masters',
-      description: 'Advanced web development video courses',
-      type: 'Video Course',
-      category: 'Advanced',
-      url: '#',
-      icon: Video
-    },
-    {
-      id: '5',
-      title: 'LeetCode',
-      description: 'Practice coding problems and algorithms',
-      type: 'Practice',
-      category: 'Coding',
-      url: '#',
-      icon: Code
-    },
-    {
-      id: '6',
-      title: 'CSS-Tricks',
-      description: 'Tips, tricks, and techniques on CSS',
-      type: 'Articles',
-      category: 'Styling',
-      url: '#',
-      icon: FileText
-    },
-  ];
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const data = await apiFetch('/resources/');
+        setResources(data);
+      } catch (error) {
+        toast.error('Failed to fetch resources');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchResources();
+  }, []);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -80,8 +47,8 @@ export function ResourcesView() {
           <div className="flex gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search resources..." 
+              <Input
+                placeholder="Search resources..."
                 className="pl-10"
               />
             </div>
@@ -191,11 +158,12 @@ export function ResourcesView() {
         <CardContent>
           <div className="space-y-3">
             {resources.map((resource) => {
-              const Icon = resource.icon;
+              const Icon = iconMap[resource.icon_name] || BookOpen;
               return (
                 <div
                   key={resource.id}
                   className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-[#4338ca]/50 hover:bg-accent transition-all cursor-pointer"
+                  onClick={() => window.open(resource.url, '_blank')}
                 >
                   <div className="flex items-start gap-3 flex-1">
                     <div className="p-2 rounded-lg bg-muted">
