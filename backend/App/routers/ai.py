@@ -5,6 +5,9 @@ from .. import models, schemas
 import os
 import json
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter(prefix="/ai", tags=["AI Generator"])
 
@@ -24,7 +27,6 @@ def get_openai_client():
     # Debug print (masked) to terminal for the user to verify
     print(f"DEBUG: Key length: {len(api_key)}")
     print(f"DEBUG: Key prefix/suffix: {api_key[:12]}...{api_key[-4:]}")
-    print(f"OPENAI KEY: {api_key}")
     
     return OpenAI(api_key=api_key)
 
@@ -129,38 +131,62 @@ async def generate_lesson_content(
     try:
         prompt = f"""
         You are a technical expert and educator. 
-        Write a detailed, comprehensive study guide/notes for the following topic:
+        Create a comprehensive learning package for the following topic:
         Title: {lesson.title}
         Context: Part of a {lesson.module.learning_path.title} curriculum.
         Difficulty: {lesson.difficulty}
         
-        The content should include:
-        1. Comprehensive explanation of concepts.
-        2. Code examples (if applicable) in professional formatting.
-        3. Practical use cases.
-        4. Summary and Key Takeaways.
+        Return a valid JSON object with the following fields:
+        {{
+            "content": "Full study guide in GitHub-style Markdown (approx 1000 words). Include concepts, code examples, and summary.",
+            "why_it_matters": "A 2-3 sentence explanation of why this skill is valuable in the industry.",
+            "what_you_learn": ["Key takeaway 1", "Key takeaway 2", "Key takeaway 3"],
+            "resources": [
+                {{
+                    "title": "Resource Title",
+                    "type": "video/article/practice",
+                    "url": "https://example.com/useful-link",
+                    "duration": "e.g. 15 mins"
+                }}
+            ]
+        }}
         
-        Format the entire response in high-quality GitHub-style Markdown.
-        Use clear headings, bold text for importance, and code blocks for code.
-        The content should be approximately 800-1200 words.
-        Return ONLY the markdown content.
+        Ensure the 'content' markdown uses clear headings (h1, h2, h3) and professional formatting.
+        Return ONLY the raw JSON string.
         """
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a technical expert."},
+                {"role": "system", "content": "You are a technical expert that outputs only JSON."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            response_format={"type": "json_object"}
         )
         
-        detailed_content = response.choices[0].message.content.strip()
+        data = json.loads(response.choices[0].message.content.strip())
+        detailed_content = data.get("content", "")
+        why_it_matters = data.get("why_it_matters", "")
+        what_you_learn = json.dumps(data.get("what_you_learn", []))
+        resources_data = data.get("resources", [])
         
-        # Update lesson content in database
+        # Update lesson in database
         lesson.content = detailed_content
+        lesson.why_it_matters = why_it_matters
+        lesson.what_you_learn = what_you_learn
+        
+        # We could also save resources to the Resource table if needed, 
+        # but for now let's return them in the response.
+        
         db.commit()
         
-        return {"message": "Content generated successfully via GPT-4", "content": detailed_content}
+        return {
+            "message": "Content generated successfully via GPT-4", 
+            "content": detailed_content,
+            "why_it_matters": why_it_matters,
+            "what_you_learn": data.get("what_you_learn", []),
+            "resources": resources_data
+        }
         
     except Exception as e:
         db.rollback()

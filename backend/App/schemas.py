@@ -72,6 +72,8 @@ class LessonOut(BaseModel):
     content: str 
     difficulty: str
     estimated_time: str
+    why_it_matters: Optional[str] = None
+    what_you_learn: Optional[str] = None
     status: Optional[str] = "upcoming"
     prerequisites_list: List[str] = []
 

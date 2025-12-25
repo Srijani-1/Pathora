@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { apiFetch } from '../lib/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import {
   Clock, CheckCircle2, ArrowLeft, BookOpen,
-  Video, FileText, Code, ExternalLink, Sparkles, Loader2
+  Video, FileText, Code, ExternalLink, Loader2
 } from 'lucide-react';
 import { Skill } from '../types/learning';
 
@@ -14,11 +16,35 @@ interface SkillDetailViewProps {
   skill: Skill;
   onBack: () => void;
   onUpdateStatus: (skillId: string, status: 'in-progress' | 'completed') => void;
+  onRefresh?: () => void;
 }
 
-export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailViewProps) {
+export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: SkillDetailViewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiContent, setAiContent] = useState<string | null>(null);
+  const [aiContent, setAiContent] = useState<string | null>(skill.description);
+  const [whyItMatters, setWhyItMatters] = useState(skill.whyItMatters);
+  const [whatYouLearn, setWhatYouLearn] = useState(skill.whatYouLearn);
+  const [resources, setResources] = useState(skill.resources);
+
+  useEffect(() => {
+    // Sync with prop when skill ID changes
+    setAiContent(skill.description);
+    setWhyItMatters(skill.whyItMatters);
+    setWhatYouLearn(skill.whatYouLearn);
+    setResources(skill.resources);
+
+    const description = skill.description?.trim() || '';
+    // A robust check for placeholders or incomplete content
+    const isPlaceholder = !description ||
+      description.length < 200 ||
+      !description.includes('#') ||
+      description.toLowerCase().includes('specific learning objectives');
+
+    if (isPlaceholder && !isGenerating) {
+      console.log('Detected placeholder content, triggering auto-generation...');
+      generateDeepDive();
+    }
+  }, [skill.id]);
 
   const generateDeepDive = async () => {
     setIsGenerating(true);
@@ -28,13 +54,26 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
         body: JSON.stringify({ lesson_id: parseInt(skill.id) })
       });
       setAiContent(data.content);
-      toast.success('Agent generated detailed notes! 📖');
+      if (data.why_it_matters) setWhyItMatters(data.why_it_matters);
+      if (data.what_you_learn) setWhatYouLearn(data.what_you_learn);
+      if (data.resources) {
+        setResources(data.resources.map((r: any, idx: number) => ({
+          id: `ai-res-${idx}`,
+          title: r.title,
+          type: r.type,
+          url: r.url,
+          duration: r.duration
+        })));
+      }
+      if (onRefresh) onRefresh();
+      toast.success('Agent generated complete skill package! 🚀');
     } catch (error: any) {
       toast.error('Failed to generate study notes');
     } finally {
       setIsGenerating(false);
     }
   };
+
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'video':
@@ -76,9 +115,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
             <h1>{skill.title}</h1>
-            <p className="text-muted-foreground mt-1">
-              {skill.description}
-            </p>
+            {!aiContent && <p className="text-muted-foreground mt-1">{skill.description}</p>}
           </div>
           <Badge className={getStatusColor(skill.status)}>
             {skill.status === 'in-progress' ? 'In Progress' :
@@ -108,29 +145,14 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
           </Button>
         )}
         {skill.status === 'in-progress' && (
-          <>
-            <Button
-              onClick={() => onUpdateStatus(skill.id, 'completed')}
-              className="bg-[#10b981] hover:bg-[#10b981]/90"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Mark as Complete
-            </Button>
-          </>
+          <Button
+            onClick={() => onUpdateStatus(skill.id, 'completed')}
+            className="bg-[#10b981] hover:bg-[#10b981]/90"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            Mark as Complete
+          </Button>
         )}
-        <Button
-          variant="outline"
-          className="border-[#4338ca]/30 text-[#4338ca] hover:bg-[#4338ca]/5"
-          onClick={generateDeepDive}
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4 mr-2" />
-          )}
-          {aiContent ? 'Regenerate Notes' : 'Generate Detailed Notes (AI)'}
-        </Button>
       </div>
 
       {/* AI Deep Dive Notes */}
@@ -149,8 +171,35 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
                 <p className="text-muted-foreground animate-pulse">Our agent is analyzing the topic and writing comprehensive notes...</p>
               </div>
             ) : (
-              <div className="prose prose-indigo dark:prose-invert max-w-none whitespace-pre-wrap font-sans text-sm md:text-base leading-relaxed">
-                {aiContent}
+              <div className="max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: (props) => <h1 className="text-2xl font-bold mb-4 text-slate-950 dark:text-purple-300" {...props} />,
+                    h2: (props) => <h2 className="text-xl font-bold mb-3 text-slate-900 dark:text-purple-200" {...props} />,
+                    h3: (props) => <h3 className="text-lg font-bold mb-2 text-slate-800 dark:text-purple-100" {...props} />,
+                    p: (props) => <p className="mb-4 text-slate-900 dark:text-slate-300 leading-relaxed" {...props} />,
+                    ul: (props) => <ul className="list-disc list-inside mb-4 text-slate-900 dark:text-slate-300" {...props} />,
+                    ol: (props) => <ol className="list-decimal list-inside mb-4 text-slate-900 dark:text-slate-300" {...props} />,
+                    li: (props) => <li className="mb-1" {...props} />,
+                    strong: (props) => <strong className="text-black dark:text-white font-bold" {...props} />,
+                    code: ({ className, children, ...props }: any) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      return !match ? (
+                        <code className="px-1.5 py-0.5 rounded text-sm text-slate-900 dark:text-purple-200 font-mono bg-slate-200/50 dark:bg-purple-900/30" {...props}>
+                          {children}
+                        </code>
+                      ) : (
+                        <code className={className} {...props}>{children}</code>
+                      );
+                    },
+                    pre: (props) => (
+                      <pre className="bg-white/60 dark:bg-black/90 p-4 rounded-lg mb-4 overflow-x-auto border border-slate-200 dark:border-slate-700/50 text-black dark:text-white" {...props} />
+                    ),
+                  }}
+                >
+                  {aiContent || ''}
+                </ReactMarkdown>
               </div>
             )}
           </CardContent>
@@ -164,7 +213,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground leading-relaxed">
-            {skill.whyItMatters}
+            {whyItMatters}
           </p>
         </CardContent>
       </Card>
@@ -176,7 +225,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
-            {skill.whatYouLearn.map((item, index) => (
+            {whatYouLearn.map((item, index) => (
               <li key={index} className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" />
                 <span className="text-muted-foreground">{item}</span>
@@ -217,10 +266,11 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {skill.resources.map((resource) => (
+            {resources.map((resource) => (
               <div
                 key={resource.id}
                 className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-[#4338ca]/50 hover:bg-accent transition-all cursor-pointer"
+                onClick={() => window.open(resource.url, '_blank')}
               >
                 <div className="flex items-start gap-3 flex-1">
                   <div className="p-2 rounded-lg bg-muted">
@@ -245,6 +295,9 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus }: SkillDetailVi
                 </Button>
               </div>
             ))}
+            {resources.length === 0 && !isGenerating && (
+              <p className="text-sm text-muted-foreground text-center py-4">No specific resources found yet. AI will generate them shortly.</p>
+            )}
           </div>
         </CardContent>
       </Card>

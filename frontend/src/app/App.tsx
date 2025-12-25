@@ -57,8 +57,8 @@ export default function App() {
               estimatedTime: lesson.estimated_time || '1 week',
               prerequisites: lesson.prerequisites_list || [],
               resources: [],
-              whyItMatters: 'This skill is essential for your career path.',
-              whatYouLearn: ['Core concepts', 'Practical application', 'Industry standards']
+              whyItMatters: lesson.why_it_matters || 'This skill is essential for your career path.',
+              whatYouLearn: lesson.what_you_learn ? JSON.parse(lesson.what_you_learn) : ['Core concepts', 'Practical application', 'Industry standards']
             }))
           )
         );
@@ -284,6 +284,7 @@ export default function App() {
               skill={selectedSkill}
               onBack={() => setSelectedSkillId(null)}
               onUpdateStatus={handleUpdateSkillStatus}
+              onRefresh={fetchInitialData}
             />
           ) : currentView === 'dashboard' ? (
             <DashboardView

@@ -53,6 +53,8 @@ class Lesson(Base):
     content = Column(Text)
     difficulty = Column(String)
     estimated_time = Column(String)
+    why_it_matters = Column(Text)
+    what_you_learn = Column(Text)  # Stored as JSON string
     module_id = Column(Integer, ForeignKey("modules.id"))
     module = relationship("Module", back_populates="lessons")
     progress = relationship("Progress", back_populates="lesson", cascade="all, delete-orphan")
