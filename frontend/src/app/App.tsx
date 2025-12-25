@@ -11,13 +11,17 @@ import { SkillDetailView } from './components/skill-detail-view';
 import { ProgressView } from './components/progress-view';
 import { RecommendationsView } from './components/recommendations-view';
 import { ResourcesView } from './components/resources-view';
+import { OfficialDocsView } from './components/official-docs-view';
+import { VideoCoursesView } from './components/video-courses-view';
+import { PracticePlatformsView } from './components/practice-platforms-view';
+import { ArticlesTutorialsView } from './components/articles-tutorials-view';
 import { ProfileView } from './components/profile-view';
 import { ProjectsView } from './components/projects-view';
 import { learningPaths, initialUserProgress, recommendations } from './data/mockData';
 import { UserProgress, Skill } from './types/learning';
 import { toast } from 'sonner';
 
-type View = 'dashboard' | 'learning-path' | 'skills' | 'progress' | 'resources' | 'profile' | 'projects';
+type View = 'dashboard' | 'learning-path' | 'skills' | 'progress' | 'resources' | 'official-docs' | 'video-courses' | 'practice-platforms' | 'articles-tutorials' | 'profile' | 'projects';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -197,7 +201,15 @@ export default function App() {
             skills={skills}
           />
         ) : currentView === 'resources' ? (
-          <ResourcesView />
+          <ResourcesView onNavigate={handleNavigate} />
+        ) : currentView === 'official-docs' ? (
+          <OfficialDocsView onNavigate={handleNavigate} />
+        ) : currentView === 'video-courses' ? (
+          <VideoCoursesView onNavigate={handleNavigate} />
+        ) : currentView === 'practice-platforms' ? (
+          <PracticePlatformsView onNavigate={handleNavigate} />
+        ) : currentView === 'articles-tutorials' ? (
+          <ArticlesTutorialsView onNavigate={handleNavigate} />
         ) : currentView === 'profile' ? (
           <ProfileView
             userEmail={userEmail}

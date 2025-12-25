@@ -7,7 +7,11 @@ import {
   ExternalLink, Search, Filter 
 } from 'lucide-react';
 
-export function ResourcesView() {
+interface ResourcesViewProps {
+  onNavigate: (view: string) => void;
+}
+
+export function ResourcesView({ onNavigate }: ResourcesViewProps) {
   const resources = [
     {
       id: '1',
@@ -95,7 +99,7 @@ export function ResourcesView() {
 
       {/* Resource Categories */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-[#4338ca]/20">
+        <Card className="border-[#4338ca]/20 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('official-docs')}>
           <CardHeader>
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-[#4338ca]/10">
@@ -116,7 +120,7 @@ export function ResourcesView() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#14b8a6]/20">
+        <Card className="border-[#14b8a6]/20 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('video-courses')}>
           <CardHeader>
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-[#14b8a6]/10">
@@ -137,7 +141,7 @@ export function ResourcesView() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#10b981]/20">
+        <Card className="border-[#10b981]/20 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('practice-platforms')}>
           <CardHeader>
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-[#10b981]/10">
@@ -158,7 +162,7 @@ export function ResourcesView() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#7c3aed]/20">
+        <Card className="border-[#7c3aed]/20 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('articles-tutorials')}>
           <CardHeader>
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-[#7c3aed]/10">
