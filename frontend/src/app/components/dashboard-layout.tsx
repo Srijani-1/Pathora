@@ -169,30 +169,49 @@ export function DashboardLayout({
               )}
             </Button>
 
-            <DropdownMenu>
+            {/* <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full flex-shrink-0">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-gradient-to-br from-[#4338ca] to-[#7c3aed] text-white">
-                      {getInitials(userName)}
-                    </AvatarFallback>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full flex-shrink-0"
+                >
+                  <Avatar>
+                    <AvatarFallback>{userName[0]}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span>{userName}</span>
-                    <span className="text-xs font-normal text-muted-foreground">Manage account</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Manage account
+                    </span>
                   </div>
                 </DropdownMenuLabel>
+
                 <DropdownMenuSeparator />
+
                 <DropdownMenuItem onClick={() => onNavigate('profile')}>
                   <User className="w-4 h-4 mr-2" />
                   Profile Settings
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onNavigate('profile')}
+            >
+              <Avatar>
+                <AvatarFallback>{userName[0]}</AvatarFallback>
+              </Avatar>
+            </Button>
+
+
+
           </div>
         </header>
 

@@ -11,9 +11,13 @@ interface ProgressViewProps {
 }
 
 export function ProgressView({ userProgress, skills }: ProgressViewProps) {
-  const completionPercentage = Math.round(
-    (userProgress.completedSkills.length / skills.length) * 100
-  );
+  const completionPercentage =
+    skills.length === 0
+      ? 0
+      : Math.round(
+        (userProgress.completedSkills.length / skills.length) * 100
+      );
+
 
   // Weekly progress data
   const weeklyData = [
@@ -71,8 +75,11 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
               <span className="text-2xl font-semibold">{completionPercentage}%</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {userProgress.completedSkills.length} of {skills.length} skills
+              {skills.length === 0
+                ? 'No skills available'
+                : `${userProgress.completedSkills.length} of ${skills.length} skills`}
             </p>
+
           </CardContent>
         </Card>
 
