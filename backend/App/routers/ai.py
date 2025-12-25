@@ -190,3 +190,34 @@ async def generate_lesson_content(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to generate content: {str(e)}")
+
+@router.post("/chat", response_model=schemas.ChatResponse)
+async def chat_with_ai(req: schemas.ChatRequest):
+    client = get_openai_client()
+
+    messages = [
+        {
+            "role": "system",
+            "content": "You are an AI learning assistant helping students with programming, planning, and career guidance."
+        }
+    ]
+
+    for msg in req.history:
+        messages.append({
+            "role": "user" if msg.isUser else "assistant",
+            "content": msg.text
+        })
+
+    messages.append({
+        "role": "user",
+        "content": req.message
+    })
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
+
+    return {
+        "reply": response.choices[0].message.content.strip()
+    }

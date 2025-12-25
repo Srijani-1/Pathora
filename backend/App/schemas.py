@@ -159,3 +159,14 @@ class PathGenerationRequest(BaseModel):
 
 class LessonContentRequest(BaseModel):
     lesson_id: int
+
+class ChatMessage(BaseModel):
+    text: str
+    isUser: bool
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []
+
+class ChatResponse(BaseModel):
+    reply: str

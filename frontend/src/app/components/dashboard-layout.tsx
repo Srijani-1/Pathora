@@ -1,8 +1,5 @@
 import { ReactNode } from 'react';
-import {
-  LayoutDashboard, Map, BookOpen, TrendingUp,
-  Library, Moon, Sun, Menu, MessageCircle, X, Sparkles, User, FolderKanban, Send
-} from 'lucide-react';
+import { LayoutDashboard, Map, BookOpen, TrendingUp, Library, Moon, Sun, Menu, MessageCircle, X, Sparkles, User, FolderKanban, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -10,6 +7,8 @@ import { useState } from 'react';
 import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { ScrollArea } from './ui/scroll-area';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -21,6 +20,12 @@ interface DashboardLayoutProps {
   currentGoal: string;
   userName: string;
 }
+
+type ChatMessage = {
+  text: string;
+  isUser: boolean;
+};
+
 
 export function DashboardLayout({
   children,
@@ -35,7 +40,9 @@ export function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessage, setAssistantMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -47,41 +54,71 @@ export function DashboardLayout({
     { id: 'resources', label: 'Resources', icon: Library },
   ];
 
-  const handleSendMessage = () => {
-    if (!assistantMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!assistantMessage.trim() || loading) return;
 
-    setChatMessages(prev => [...prev, { text: assistantMessage, isUser: true }]);
+    setLoading(true);
+    const userMessage = assistantMessage;
 
-    // Simulate AI response
-    setTimeout(() => {
-      const responses = [
-        "Great question! Based on your progress, I'd recommend focusing on React hooks next.",
-        "I suggest spending 30 minutes daily on practice exercises to build consistency.",
-        "Let me help you with that. Have you checked out the resources section?",
-        "That's a good approach! Remember to apply what you learn in projects.",
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      setChatMessages(prev => [...prev, { text: randomResponse, isUser: false }]);
-    }, 1000);
+    setChatMessages(prev => [...prev, { text: userMessage, isUser: true }]);
+    setAssistantMessage("");
 
-    setAssistantMessage('');
+    try {
+      const res = await fetch("http://localhost:8000/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage,
+          history: chatMessages
+        })
+      });
+
+      const data = await res.json();
+
+      setChatMessages(prev => [...prev, { text: data.reply, isUser: false }]);
+    } catch (e) {
+      setChatMessages(prev => [
+        ...prev,
+        { text: "⚠️ Server error. Try again.", isUser: false }
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleQuickAction = (question: string) => {
+
+
+  const handleQuickAction = async (question: string) => {
     setChatMessages(prev => [...prev, { text: question, isUser: true }]);
 
-    setTimeout(() => {
-      let response = '';
-      if (question.includes('revise')) {
-        response = "Based on your progress, I recommend revisiting JavaScript fundamentals and practicing with coding challenges.";
-      } else if (question.includes('weekly plan')) {
-        response = "Here's a suggested plan: Mon-Wed: React components (2hrs/day), Thu-Fri: State management (2hrs/day), Weekend: Build a mini project!";
-      } else {
-        response = "React hooks are functions that let you use state and lifecycle features in functional components. Start with useState and useEffect!";
-      }
-      setChatMessages(prev => [...prev, { text: response, isUser: false }]);
-    }, 1000);
+    try {
+      const res = await fetch("http://localhost:8000/ai/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: question,
+          history: chatMessages
+        })
+      });
+
+      const data = await res.json();
+
+      setChatMessages(prev => [
+        ...prev,
+        { text: data.reply, isUser: false }
+      ]);
+    } catch (err) {
+      setChatMessages(prev => [
+        ...prev,
+        { text: "⚠️ Something went wrong.", isUser: false }
+      ]);
+    }
   };
+
+
+
 
   const getInitials = (name: string) => {
     return name
@@ -91,6 +128,15 @@ export function DashboardLayout({
       .toUpperCase()
       .slice(0, 2);
   };
+  const TypingIndicator = () => (
+    <div className="p-3 rounded-lg bg-muted max-w-[85%] mr-auto flex items-center gap-2">
+      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300" />
+      <span className="text-sm text-muted-foreground ml-1">Thinking...</span>
+    </div>
+  );
+
 
   return (
     <div className="flex h-screen bg-background">
@@ -238,7 +284,7 @@ export function DashboardLayout({
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-3 mb-4">
               <p className="text-sm text-muted-foreground">Quick actions:</p>
               <Button
@@ -269,14 +315,34 @@ export function DashboardLayout({
                 {chatMessages.map((msg, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded-lg text-sm ${msg.isUser
-                      ? 'bg-[#4338ca] text-white ml-8'
-                      : 'bg-muted mr-8'
+                    className={`p-3 rounded-lg text-sm max-w-[85%] break-words whitespace-pre-wrap ${msg.isUser
+                      ? 'bg-[#4338ca] text-white ml-auto'
+                      : 'bg-muted mr-auto'
                       }`}
                   >
-                    {msg.text}
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => (
+                          <p className="whitespace-pre-wrap leading-relaxed">{children}</p>
+                        ),
+                        li: ({ children }) => (
+                          <li className="ml-4 list-disc">{children}</li>
+                        ),
+                        code: ({ children }) => (
+                          <code className="bg-black/20 px-1 py-0.5 rounded text-sm">
+                            {children}
+                          </code>
+                        ),
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+
                   </div>
                 ))}
+                {/* Loading bubble */}
+                {loading && <TypingIndicator />}
               </div>
             )}
 
@@ -292,14 +358,17 @@ export function DashboardLayout({
           <div className="p-4 border-t border-border flex-shrink-0">
             <div className="flex gap-2">
               <Input
-                placeholder="Ask me anything..."
+                placeholder={loading ? "Assistant is thinking..." : "Ask me anything..."}
                 value={assistantMessage}
+                disabled={loading}
                 onChange={(e) => setAssistantMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 className="flex-1"
               />
+
               <Button
                 onClick={handleSendMessage}
+                disabled={loading}
                 className="bg-[#4338ca] hover:bg-[#4338ca]/90 flex-shrink-0"
                 size="icon"
               >
