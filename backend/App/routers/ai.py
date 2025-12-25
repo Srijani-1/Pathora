@@ -145,12 +145,13 @@ async def generate_lesson_content(
                 {{
                     "title": "Resource Title",
                     "type": "video/article/practice",
-                    "url": "https://example.com/useful-link",
+                    "url": "Provide a REAL, valid URL to a high-quality resource from YouTube, MDN Web Docs, or official documentation. DO NOT use example.com.",
                     "duration": "e.g. 15 mins"
                 }}
             ]
         }}
         
+        CRITICAL: For 'resources', provide REAL links that exist. If you recommend a video, link to a popular YouTube video on the topic. If it's a guide, link to MDN or official docs.
         Ensure the 'content' markdown uses clear headings (h1, h2, h3) and professional formatting.
         Return ONLY the raw JSON string.
         """
@@ -174,9 +175,7 @@ async def generate_lesson_content(
         lesson.content = detailed_content
         lesson.why_it_matters = why_it_matters
         lesson.what_you_learn = what_you_learn
-        
-        # We could also save resources to the Resource table if needed, 
-        # but for now let's return them in the response.
+        lesson.ai_resources = json.dumps(resources_data)
         
         db.commit()
         

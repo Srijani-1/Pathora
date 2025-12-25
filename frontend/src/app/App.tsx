@@ -29,10 +29,12 @@ export default function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [learningPaths, setLearningPaths] = useState<any[]>([]);
+  const [currentPathId, setCurrentPathId] = useState<number | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = async (forceLatest = false) => {
     try {
       const user = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
       if (!user.id) return;
@@ -45,25 +47,42 @@ export default function App() {
       setUserProgress(progressData);
 
       if (pathsData && pathsData.length > 0) {
-        const allSkills: Skill[] = pathsData.flatMap((path: any) =>
-          (path.modules || []).flatMap((module: any) =>
-            (module.lessons || []).map((lesson: any) => ({
-              id: lesson.id.toString(),
-              title: lesson.title,
-              description: lesson.content || '',
-              category: module.title,
-              difficulty: lesson.difficulty || 'beginner',
-              status: lesson.status || 'upcoming',
-              estimatedTime: lesson.estimated_time || '1 week',
-              prerequisites: lesson.prerequisites_list || [],
-              resources: [],
-              whyItMatters: lesson.why_it_matters || 'This skill is essential for your career path.',
-              whatYouLearn: lesson.what_you_learn ? JSON.parse(lesson.what_you_learn) : ['Core concepts', 'Practical application', 'Industry standards']
-            }))
-          )
+        setLearningPaths(pathsData);
+
+        // Select the path. Priority: forceLatest -> currentPathId state -> localStorage -> latest path
+        const savedPathId = localStorage.getItem('selected_path_id');
+        const initialPathId = forceLatest
+          ? pathsData[pathsData.length - 1].id
+          : (currentPathId || (savedPathId ? parseInt(savedPathId) : pathsData[pathsData.length - 1].id));
+
+        const path = pathsData.find((p: any) => p.id === initialPathId) || pathsData[pathsData.length - 1];
+        setCurrentPathId(path.id);
+        localStorage.setItem('selected_path_id', path.id.toString());
+
+        const pathSkills: Skill[] = (path.modules || []).flatMap((module: any) =>
+          (module.lessons || []).map((lesson: any) => ({
+            id: lesson.id.toString(),
+            title: lesson.title,
+            description: lesson.content || '',
+            category: module.title,
+            difficulty: lesson.difficulty || 'beginner',
+            status: lesson.status || 'upcoming',
+            estimatedTime: lesson.estimated_time || '1 week',
+            prerequisites: lesson.prerequisites_list || [],
+            resources: lesson.ai_resources ? JSON.parse(lesson.ai_resources).map((r: any, idx: number) => ({
+              id: `ai-res-${lesson.id}-${idx}`,
+              title: r.title,
+              type: r.type,
+              url: r.url,
+              duration: r.duration
+            })) : [],
+            whyItMatters: lesson.why_it_matters || 'This skill is essential for your career path.',
+            whatYouLearn: lesson.what_you_learn ? JSON.parse(lesson.what_you_learn) : ['Core concepts', 'Practical application', 'Industry standards']
+          }))
         );
-        setSkills(allSkills);
+        setSkills(pathSkills);
       } else {
+        setLearningPaths([]);
         setSkills([]);
       }
     } catch (error) {
@@ -79,7 +98,9 @@ export default function App() {
         weeklyGoalHours: 10,
         joinedDate: new Date().toISOString(),
         lastActivityDate: new Date().toISOString(),
-        milestones: []
+        milestones: [],
+        weeklyActivity: [],
+        trajectory: []
       });
     }
   };
@@ -110,11 +131,6 @@ export default function App() {
       }
     }
     */
-
-    // Always clear session on reload to force login page
-    localStorage.removeItem('logged_in_user');
-    localStorage.removeItem('access_token');
-    setIsAuthenticated(false);
 
     // Check if user has completed onboarding
     const onboardingComplete = localStorage.getItem('onboarding_complete');
@@ -185,7 +201,8 @@ export default function App() {
   const handleNavigate = (view: string, skillId?: string) => {
     if (skillId) {
       setSelectedSkillId(skillId);
-      setCurrentView('skills');
+      // Don't change currentView if we're just opening a skill detail
+      // This way "Back" stays in the same context (Dashboard/Learning Path)
     } else {
       setCurrentView(view as View);
       setSelectedSkillId(null);
@@ -228,12 +245,19 @@ export default function App() {
         }
 
         if (status === 'completed') {
-          updated.completedSkills = [...prev.completedSkills, skillId];
+          updated.completedSkills = Array.from(new Set([...prev.completedSkills, skillId]));
           updated.inProgressSkills = prev.inProgressSkills.filter(id => id !== skillId);
         }
 
         return updated;
       });
+
+      // Refresh progress data from server to get accurate charts/hours
+      const userAgain = JSON.parse(localStorage.getItem('logged_in_user') || '{}');
+      if (userAgain.id) {
+        const progressData = await apiFetch(`/progress/overview/${userAgain.id}`);
+        setUserProgress(progressData);
+      }
 
       if (status === 'completed') {
         toast.success('Skill completed! 🎉', {
@@ -262,6 +286,39 @@ export default function App() {
   }
 
   const selectedSkill = selectedSkillId ? skills.find(s => s.id === selectedSkillId) : null;
+  const currentPath = learningPaths.find(p => p.id === currentPathId);
+
+  // Function to switch paths
+  const handleSwitchPath = (pathId: number) => {
+    setCurrentPathId(pathId);
+    localStorage.setItem('selected_path_id', pathId.toString());
+    const path = learningPaths.find(p => p.id === pathId);
+    if (path) {
+      const pathSkills: Skill[] = (path.modules || []).flatMap((module: any) =>
+        (module.lessons || []).map((lesson: any) => ({
+          id: lesson.id.toString(),
+          title: lesson.title,
+          description: lesson.content || '',
+          category: module.title,
+          difficulty: lesson.difficulty || 'beginner',
+          status: lesson.status || 'upcoming',
+          estimatedTime: lesson.estimated_time || '1 week',
+          prerequisites: lesson.prerequisites_list || [],
+          resources: lesson.ai_resources ? JSON.parse(lesson.ai_resources).map((r: any, idx: number) => ({
+            id: `ai-res-${lesson.id}-${idx}`,
+            title: r.title,
+            type: r.type,
+            url: r.url,
+            duration: r.duration
+          })) : [],
+          whyItMatters: lesson.why_it_matters || 'This skill is essential for your career path.',
+          whatYouLearn: lesson.what_you_learn ? JSON.parse(lesson.what_you_learn) : ['Core concepts', 'Practical application', 'Industry standards']
+        }))
+      );
+      setSkills(pathSkills);
+      toast.success(`Switched to: ${path.title}`);
+    }
+  };
 
   return (
     <ThemeProvider attribute="class" defaultTheme={theme}>
@@ -276,7 +333,7 @@ export default function App() {
           theme={theme}
           onThemeToggle={handleThemeToggle}
           progress={completionPercentage}
-          currentGoal="Frontend Development"
+          currentGoal={currentPath?.title || "Choose a Goal"}
           userName={userName}
         >
           {selectedSkill ? (
@@ -295,8 +352,11 @@ export default function App() {
           ) : currentView === 'learning-path' ? (
             <LearningPathView
               skills={skills}
+              allPaths={learningPaths}
+              currentPathId={currentPathId}
               onSkillClick={(skillId) => handleNavigate('skills', skillId)}
-              onRefresh={fetchInitialData}
+              onRefresh={() => fetchInitialData(true)}
+              onSwitchPath={handleSwitchPath}
             />
           ) : currentView === 'skills' ? (
             <SkillsView

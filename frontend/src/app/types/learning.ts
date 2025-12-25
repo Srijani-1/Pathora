@@ -47,6 +47,8 @@ export interface UserProgress {
   joinedDate: string;
   lastActivityDate: string;
   milestones: Milestone[];
+  weeklyActivity: { day: string; hours: number }[];
+  trajectory: { month: string; skills: number }[];
 }
 
 export interface Milestone {

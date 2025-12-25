@@ -71,15 +71,23 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
             <CardDescription>Hours This Week</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-[#14b8a6]" />
-              <span className="text-2xl font-semibold">0</span>
-              <span className="text-muted-foreground">/ {userProgress.weeklyGoalHours}h</span>
-            </div>
-            <Progress value={0} className="h-2" />
-            <p className="text-sm text-muted-foreground mt-2">
-              Start learning to track your progress
-            </p>
+            {(() => {
+              const weeklyHours = userProgress.weeklyActivity.reduce((acc, curr) => acc + curr.hours, 0);
+              const percent = Math.min((weeklyHours / userProgress.weeklyGoalHours) * 100, 100);
+              return (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-[#14b8a6]" />
+                    <span className="text-2xl font-semibold">{weeklyHours.toFixed(1)}</span>
+                    <span className="text-muted-foreground">/ {userProgress.weeklyGoalHours}h</span>
+                  </div>
+                  <Progress value={percent} className="h-2" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {weeklyHours >= userProgress.weeklyGoalHours ? "Goal reached! 🌟" : `${(userProgress.weeklyGoalHours - weeklyHours).toFixed(1)}h left to reach your goal`}
+                  </p>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -119,7 +127,9 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
               <div>
                 <h3>{inProgressSkill.title}</h3>
                 <p className="text-muted-foreground mt-1">
-                  {inProgressSkill.description}
+                  {inProgressSkill.description.includes('#') || inProgressSkill.description.length > 200
+                    ? inProgressSkill.description.replace(/#[^\n]*\n/g, '').split('\n\n')[0].slice(0, 150) + '...'
+                    : inProgressSkill.description}
                 </p>
               </div>
               <div className="flex items-center gap-4 text-sm">

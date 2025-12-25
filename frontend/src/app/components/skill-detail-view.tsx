@@ -58,7 +58,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: Sk
       if (data.what_you_learn) setWhatYouLearn(data.what_you_learn);
       if (data.resources) {
         setResources(data.resources.map((r: any, idx: number) => ({
-          id: `ai-res-${idx}`,
+          id: `ai-res-${skill.id}-${idx}`,
           title: r.title,
           type: r.type,
           url: r.url,
@@ -212,9 +212,16 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: Sk
           <CardTitle>Why This Skill Matters</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed">
-            {whyItMatters}
-          </p>
+          {isGenerating ? (
+            <div className="flex items-center gap-3 py-2">
+              <Loader2 className="w-4 h-4 text-[#4338ca] animate-spin" />
+              <p className="text-muted-foreground animate-pulse text-sm">Agent is researching the industry impact...</p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground leading-relaxed">
+              {whyItMatters}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -224,14 +231,26 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: Sk
           <CardTitle>What You'll Learn</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-3">
-            {whatYouLearn.map((item, index) => (
-              <li key={index} className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" />
-                <span className="text-muted-foreground">{item}</span>
-              </li>
-            ))}
-          </ul>
+          {isGenerating ? (
+            <div className="space-y-3 py-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-5 h-5 rounded-full bg-muted" />
+                  <div className="h-4 bg-muted rounded w-3/4" />
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground mt-2 italic">Identifying key learning objectives...</p>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {whatYouLearn.map((item, index) => (
+                <li key={index} className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
@@ -266,37 +285,56 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: Sk
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {resources.map((resource) => (
-              <div
-                key={resource.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-[#4338ca]/50 hover:bg-accent transition-all cursor-pointer"
-                onClick={() => window.open(resource.url, '_blank')}
-              >
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="p-2 rounded-lg bg-muted">
-                    {getResourceIcon(resource.type)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{resource.title}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {resource.type}
-                      </Badge>
-                      {resource.duration && (
-                        <span className="text-sm text-muted-foreground">
-                          {resource.duration}
-                        </span>
-                      )}
+            {isGenerating ? (
+              <div className="space-y-3 py-2">
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-lg border border-border animate-pulse">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="p-2 rounded-lg bg-muted w-8 h-8" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/2" />
+                        <div className="h-3 bg-muted rounded w-1/4" />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
+                ))}
+                <p className="text-xs text-muted-foreground text-center animate-pulse">Agent is curating professional resources for you...</p>
               </div>
-            ))}
-            {resources.length === 0 && !isGenerating && (
-              <p className="text-sm text-muted-foreground text-center py-4">No specific resources found yet. AI will generate them shortly.</p>
+            ) : (
+              <>
+                {resources.map((resource) => (
+                  <div
+                    key={resource.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-[#4338ca]/50 hover:bg-accent transition-all cursor-pointer"
+                    onClick={() => window.open(resource.url, '_blank')}
+                  >
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="p-2 rounded-lg bg-muted">
+                        {getResourceIcon(resource.type)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{resource.title}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {resource.type}
+                          </Badge>
+                          {resource.duration && (
+                            <span className="text-sm text-muted-foreground">
+                              {resource.duration}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                {resources.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No specific resources found yet.</p>
+                )}
+              </>
             )}
           </div>
         </CardContent>

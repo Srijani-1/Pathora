@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { 
-  LayoutDashboard, Map, BookOpen, TrendingUp, 
+import {
+  LayoutDashboard, Map, BookOpen, TrendingUp,
   Library, Moon, Sun, Menu, MessageCircle, X, Sparkles, User, FolderKanban, Send
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -43,6 +43,7 @@ export function DashboardLayout({
     { id: 'skills', label: 'Skills', icon: BookOpen },
     { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'projects', label: 'Projects', icon: FolderKanban },
+    { id: 'profile', label: 'Profile', icon: User },
     { id: 'resources', label: 'Resources', icon: Library },
   ];
 
@@ -50,7 +51,7 @@ export function DashboardLayout({
     if (!assistantMessage.trim()) return;
 
     setChatMessages(prev => [...prev, { text: assistantMessage, isUser: true }]);
-    
+
     // Simulate AI response
     setTimeout(() => {
       const responses = [
@@ -68,7 +69,7 @@ export function DashboardLayout({
 
   const handleQuickAction = (question: string) => {
     setChatMessages(prev => [...prev, { text: question, isUser: true }]);
-    
+
     setTimeout(() => {
       let response = '';
       if (question.includes('revise')) {
@@ -94,9 +95,8 @@ export function DashboardLayout({
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside className={`bg-card border-r border-border transition-all duration-300 flex-shrink-0 ${
-        sidebarOpen ? 'w-64' : 'w-0 md:w-16'
-      } overflow-hidden`}>
+      <aside className={`bg-card border-r border-border transition-all duration-300 flex-shrink-0 ${sidebarOpen ? 'w-64' : 'w-0 md:w-16'
+        } overflow-hidden`}>
         <div className={`p-6 border-b border-border ${!sidebarOpen && 'hidden md:block md:p-3'}`}>
           <h2 className={`flex items-center gap-2 ${!sidebarOpen && 'md:justify-center'}`}>
             <div className="w-8 h-8 bg-gradient-to-br from-[#4338ca] to-[#7c3aed] rounded-lg flex items-center justify-center text-white flex-shrink-0">
@@ -113,11 +113,10 @@ export function DashboardLayout({
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  currentView === item.id
-                    ? 'bg-[#4338ca] text-white shadow-md'
-                    : 'text-foreground hover:bg-accent'
-                } ${!sidebarOpen && 'md:justify-center'}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === item.id
+                  ? 'bg-[#4338ca] text-white shadow-md'
+                  : 'text-foreground hover:bg-accent'
+                  } ${!sidebarOpen && 'md:justify-center'}`}
                 title={!sidebarOpen ? item.label : undefined}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -156,7 +155,7 @@ export function DashboardLayout({
                 <Progress value={progress} />
               </div>
             </div>
-            
+
             <Button
               variant="ghost"
               size="icon"
@@ -223,22 +222,22 @@ export function DashboardLayout({
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-3 mb-4">
               <p className="text-sm text-muted-foreground">Quick actions:</p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start text-sm"
                 onClick={() => handleQuickAction('What should I revise?')}
               >
                 What should I revise?
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start text-sm"
                 onClick={() => handleQuickAction('Suggest a weekly plan')}
               >
                 Suggest a weekly plan
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start text-sm"
                 onClick={() => handleQuickAction('Explain React hooks')}
               >
@@ -251,11 +250,10 @@ export function DashboardLayout({
                 {chatMessages.map((msg, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded-lg text-sm ${
-                      msg.isUser
-                        ? 'bg-[#4338ca] text-white ml-8'
-                        : 'bg-muted mr-8'
-                    }`}
+                    className={`p-3 rounded-lg text-sm ${msg.isUser
+                      ? 'bg-[#4338ca] text-white ml-8'
+                      : 'bg-muted mr-8'
+                      }`}
                   >
                     {msg.text}
                   </div>
@@ -281,7 +279,7 @@ export function DashboardLayout({
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 className="flex-1"
               />
-              <Button 
+              <Button
                 onClick={handleSendMessage}
                 className="bg-[#4338ca] hover:bg-[#4338ca]/90 flex-shrink-0"
                 size="icon"

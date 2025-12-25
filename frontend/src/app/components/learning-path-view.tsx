@@ -9,17 +9,28 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import {
   CheckCircle2, Circle, Lock, Clock,
-  ArrowRight, PlayCircle, Sparkles, Loader2, BrainCircuit
+  ArrowRight, PlayCircle, Sparkles, Loader2, BrainCircuit,
+  Map as MapIcon, BookOpen
 } from 'lucide-react';
 import { Skill } from '../types/learning';
 
 interface LearningPathViewProps {
   skills: Skill[];
+  allPaths: any[];
+  currentPathId: number | null;
   onSkillClick: (skillId: string) => void;
   onRefresh: () => void;
+  onSwitchPath: (pathId: number) => void;
 }
 
-export function LearningPathView({ skills, onSkillClick, onRefresh }: LearningPathViewProps) {
+export function LearningPathView({
+  skills,
+  allPaths,
+  currentPathId,
+  onSkillClick,
+  onRefresh,
+  onSwitchPath
+}: LearningPathViewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState('beginner');
@@ -173,6 +184,59 @@ export function LearningPathView({ skills, onSkillClick, onRefresh }: LearningPa
         </CardContent>
       </Card>
 
+      {/* All Paths Selection */}
+      {allPaths.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <MapIcon className="w-5 h-5 text-[#4338ca]" />
+              My Learning Journeys
+            </h2>
+            <Badge variant="outline" className="text-[#4338ca] border-[#4338ca]/30">
+              {allPaths.length} Plans Available
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {allPaths.map((path) => (
+              <Card
+                key={path.id}
+                className={`transition-all border-2 cursor-pointer hover:shadow-md ${path.id === currentPathId
+                  ? 'border-[#4338ca] bg-[#4338ca]/5 shadow-sm'
+                  : 'border-border'
+                  }`}
+                onClick={() => onSwitchPath(path.id)}
+              >
+                <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="flex-1">
+                    <CardTitle className="text-base truncate">{path.title}</CardTitle>
+                    <CardDescription className="line-clamp-1 text-xs">{path.description}</CardDescription>
+                  </div>
+                  {path.id === currentPathId && (
+                    <Badge className="bg-[#4338ca] text-white text-[10px] h-5">ACTIVE</Badge>
+                  )}
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Badge variant="outline" className="capitalize text-[10px] h-5">{path.difficulty}</Badge>
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" />
+                        {path.modules?.length || 0} Modules
+                      </span>
+                    </div>
+                    {path.id !== currentPathId && (
+                      <span className="text-[#4338ca] font-medium hover:underline text-[10px]">
+                        Switch Goal
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {skills.length > 0 && (
         <>
           <div className="pt-4 pb-2 border-b">
@@ -266,7 +330,9 @@ export function LearningPathView({ skills, onSkillClick, onRefresh }: LearningPa
                                 )}
                               </CardTitle>
                               <CardDescription className="mt-1">
-                                {skill.description}
+                                {skill.description.includes('#') || skill.description.length > 200
+                                  ? skill.description.replace(/#[^\n]*\n/g, '').split('\n\n')[0].slice(0, 150) + '...'
+                                  : skill.description}
                               </CardDescription>
                             </div>
                             <Badge className={getStatusColor(skill.status)}>

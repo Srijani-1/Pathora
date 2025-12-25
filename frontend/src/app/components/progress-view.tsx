@@ -87,7 +87,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
               <span className="text-muted-foreground">days</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Current streak
+              Active days this week
             </p>
           </CardContent>
         </Card>
@@ -97,15 +97,23 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <CardDescription>Total Hours</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-[#14b8a6]" />
-              <span className="text-2xl font-semibold">0</span>
-              <span className="text-muted-foreground">/ {userProgress.weeklyGoalHours}h</span>
-            </div>
-            <Progress value={0} className="h-2" />
-            <p className="text-sm text-muted-foreground mt-2">
-              Start a lesson to track your hours
-            </p>
+            {(() => {
+              const weeklyHours = userProgress.weeklyActivity.reduce((acc, curr) => acc + curr.hours, 0);
+              const percent = Math.min((weeklyHours / userProgress.weeklyGoalHours) * 100, 100);
+              return (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-[#14b8a6]" />
+                    <span className="text-2xl font-semibold">{weeklyHours.toFixed(1)}</span>
+                    <span className="text-muted-foreground">/ {userProgress.weeklyGoalHours}h</span>
+                  </div>
+                  <Progress value={percent} className="h-2" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Weekly Goal Progress
+                  </p>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -140,7 +148,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={weeklyData}>
+              <BarChart data={userProgress.weeklyActivity}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis
                   dataKey="day"
@@ -148,7 +156,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 />
                 <YAxis
                   tick={{ fill: 'var(--foreground)', fontSize: 12 }}
-                  label={{ value: 'Hours', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', offset: 0 }}
                 />
                 <Tooltip
                   contentStyle={{
@@ -163,7 +171,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <div className="mt-4 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Weekly Goal: {userProgress.weeklyGoalHours}h</span>
               <Badge className="bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20">
-                On Track
+                {userProgress.weeklyActivity.reduce((a, b) => a + b.hours, 0) >= userProgress.weeklyGoalHours ? "Goal Met" : "In Progress"}
               </Badge>
             </div>
           </CardContent>
@@ -204,17 +212,6 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="mt-4 flex flex-wrap gap-2 justify-center">
-              {statusData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2 text-sm">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-muted-foreground">{item.name}</span>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
@@ -228,7 +225,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={monthlyData}>
+              <LineChart data={userProgress.trajectory}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis
                   dataKey="month"
@@ -263,7 +260,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
         <CardHeader>
           <CardTitle>Activity Summary</CardTitle>
           <CardDescription>
-            Your learning activity over the past 30 days
+            Your learning activity overview
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -275,7 +272,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 </div>
                 <div>
                   <p className="font-medium">Skills Completed</p>
-                  <p className="text-sm text-muted-foreground">Last 30 days</p>
+                  <p className="text-sm text-muted-foreground">Total mastered</p>
                 </div>
               </div>
               <span className="text-2xl font-semibold">{userProgress.completedSkills.length}</span>
@@ -288,10 +285,10 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 </div>
                 <div>
                   <p className="font-medium">Active Days</p>
-                  <p className="text-sm text-muted-foreground">Days with activity</p>
+                  <p className="text-sm text-muted-foreground">Days of study this week</p>
                 </div>
               </div>
-              <span className="text-2xl font-semibold">0</span>
+              <span className="text-2xl font-semibold">{userProgress.weeklyStreak}</span>
             </div>
 
             <div className="flex items-center justify-between py-3">
@@ -300,11 +297,11 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                   <Clock className="w-5 h-5 text-[#f59e0b]" />
                 </div>
                 <div>
-                  <p className="font-medium">Average Daily Time</p>
-                  <p className="text-sm text-muted-foreground">Per active day</p>
+                  <p className="font-medium">Total Time Spent</p>
+                  <p className="text-sm text-muted-foreground">All-time hours</p>
                 </div>
               </div>
-              <span className="text-2xl font-semibold">0h</span>
+              <span className="text-2xl font-semibold">{userProgress.totalHoursSpent}h</span>
             </div>
           </div>
         </CardContent>
