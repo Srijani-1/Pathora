@@ -7,6 +7,7 @@ import {
   Circle, PlayCircle, ArrowRight
 } from 'lucide-react';
 import { Skill } from '../types/learning';
+import { useState, useMemo } from 'react';
 
 interface SkillsViewProps {
   skills: Skill[];
@@ -14,6 +15,19 @@ interface SkillsViewProps {
 }
 
 export function SkillsView({ skills, onSkillClick }: SkillsViewProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredSkills = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+
+    if (!query) return skills;
+
+    return skills.filter(skill =>
+      skill.title.toLowerCase().includes(query) ||
+      skill.description.toLowerCase().includes(query) ||
+      skill.category.toLowerCase().includes(query)
+    );
+  }, [skills, searchQuery]);
+
   const getStatusColor = (status: Skill['status']) => {
     switch (status) {
       case 'completed':
@@ -38,7 +52,7 @@ export function SkillsView({ skills, onSkillClick }: SkillsViewProps) {
     }
   };
 
-  const categories = Array.from(new Set(skills.map(s => s.category)));
+  const categories = Array.from(new Set(filteredSkills.map(s => s.category)));
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -58,12 +72,14 @@ export function SkillsView({ skills, onSkillClick }: SkillsViewProps) {
               <Input
                 placeholder="Search skills..."
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline">
+            {/* <Button variant="outline">
               <Filter className="w-4 h-4 mr-2" />
               Filter
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>
@@ -109,10 +125,20 @@ export function SkillsView({ skills, onSkillClick }: SkillsViewProps) {
           </CardContent>
         </Card>
       </div>
+      {filteredSkills.length === 0 && (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            No skills match your search.
+          </CardContent>
+        </Card>
+      )}
 
       {/* Skills by Category */}
       {categories.map((category) => {
-        const categorySkills = skills.filter(s => s.category === category);
+        const categorySkills = filteredSkills.filter(
+          s => s.category === category
+        );
+
 
         return (
           <div key={category}>
