@@ -163,7 +163,7 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
             className="w-full sm:w-auto"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
+            Log Out
           </Button>
         </CardContent>
       </Card>
