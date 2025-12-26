@@ -326,8 +326,14 @@ export function DashboardLayout({
                         p: ({ children }) => (
                           <p className="whitespace-pre-wrap leading-relaxed">{children}</p>
                         ),
+                        ul: ({ children }) => (
+                          <ul className="list-disc list-inside space-y-1">{children}</ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="list-decimal list-inside space-y-1">{children}</ol>
+                        ),
                         li: ({ children }) => (
-                          <li className="ml-4 list-disc">{children}</li>
+                          <li className="ml-4">{children}</li>
                         ),
                         code: ({ children }) => (
                           <code className="bg-black/20 px-1 py-0.5 rounded text-sm">
