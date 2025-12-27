@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ThemeProvider } from "next-themes";
+import { useSearchParams } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
 import { Onboarding, OnboardingData } from "./components/onboarding";
 import { AuthView } from "./components/auth-view";
@@ -43,6 +44,31 @@ export default function App() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sync URL -> State (Enables Browser Navigation)
+  useEffect(() => {
+    const viewParam = searchParams.get("view");
+    const skillParam = searchParams.get("skillId");
+    const projectParam = searchParams.get("projectId");
+
+    if (viewParam && viewParam !== currentView) {
+      setCurrentView(viewParam as View);
+    } else if (!viewParam && currentView !== "dashboard") {
+      setCurrentView("dashboard");
+    }
+
+    if (skillParam !== selectedSkillId) {
+      setSelectedSkillId(skillParam);
+    }
+
+    if (projectParam && parseInt(projectParam) !== selectedProjectId) {
+      setSelectedProjectId(parseInt(projectParam));
+    } else if (!projectParam && selectedProjectId) {
+      setSelectedProjectId(null);
+    }
+  }, [searchParams, currentView, selectedSkillId, selectedProjectId]);
 
   // Fetch data after login
   const fetchInitialData = async (forceLatest = false) => {
@@ -121,20 +147,22 @@ export default function App() {
 
   // LOGIN callback - correctly sets states and fetches user data
   const handleLogin = async (email: string, name: string) => {
+    // 1. Check onboarding status immediately to prevent flicker
+    const onboardingComplete = localStorage.getItem("onboarding_complete");
+    if (onboardingComplete === "true") {
+      setHasCompletedOnboarding(true);
+      setCurrentView("dashboard");
+    } else {
+      setHasCompletedOnboarding(false);
+    }
+
+    // 2. Set authenticated state (now the view will be correct)
     setIsAuthenticated(true);
     setUserEmail(email);
     setUserName(name);
 
-    // Wait for user progress & paths to load
+    // 3. Fetch data in background (don't block UI transition)
     await fetchInitialData();
-
-    const onboardingComplete = localStorage.getItem("onboarding_complete");
-    if (onboardingComplete === "true") {
-      setHasCompletedOnboarding(true);
-      setCurrentView("dashboard"); // Redirect to dashboard after login
-    } else {
-      setHasCompletedOnboarding(false);
-    }
   };
 
   const handleLogout = () => {
@@ -158,12 +186,22 @@ export default function App() {
   const currentPath = learningPaths.find((p) => p.id === currentPathId);
 
   const handleNavigate = (view: string, skillId?: string) => {
+    // Sync State -> URL
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("view", view);
+
     if (skillId) {
-      setSelectedSkillId(skillId);
+      newParams.set("skillId", skillId);
     } else {
-      setCurrentView(view as View);
-      setSelectedSkillId(null);
+      newParams.delete("skillId");
     }
+
+    // Clear project if not navigating to editor
+    if (view !== "project-editor") {
+      newParams.delete("projectId");
+    }
+
+    setSearchParams(newParams);
   };
 
   const handleThemeToggle = () => {
@@ -199,11 +237,43 @@ export default function App() {
           {selectedSkill ? (
             <SkillDetailView
               skill={selectedSkill}
-              onBack={() => setSelectedSkillId(null)}
+              onBack={() => handleNavigate(currentView)} // Clear skillId
               onUpdateStatus={async (skillId, status) => {
-                await fetchInitialData(); // refresh progress
+                const user = JSON.parse(localStorage.getItem("logged_in_user") || "{}");
+                if (!user.id) return;
+
+                try {
+                  if (status === 'in-progress') {
+                    await apiFetch(`/progress/start/${skillId}?user_id=${user.id}`, {
+                      method: 'POST'
+                    });
+                    toast.success("Lesson started!");
+                  } else if (status === 'completed') {
+                    // Try to parse estimated time to make time spent "legit"
+                    let hours = 1.0;
+                    if (selectedSkill?.estimatedTime) {
+                      const timeStr = selectedSkill.estimatedTime.toLowerCase();
+                      const val = parseFloat(timeStr.replace(/[^0-9.]/g, ''));
+                      if (!isNaN(val)) {
+                        if (timeStr.includes('min')) hours = val / 60;
+                        else if (timeStr.includes('hour') || timeStr.includes('hr')) hours = val;
+                        else if (timeStr.includes('day')) hours = val * 3; // Approx study hours per day
+                        else if (timeStr.includes('week')) hours = val * 15; // Approx study hours per week
+                      }
+                    }
+
+                    await apiFetch(`/progress/complete/${skillId}?user_id=${user.id}&time_spent=${hours.toFixed(2)}`, {
+                      method: 'POST'
+                    });
+                    toast.success("Lesson completed! 🎉");
+                  }
+                  await fetchInitialData(); // refresh progress
+                } catch (e) {
+                  toast.error("Failed to update status");
+                }
               }}
               onRefresh={() => fetchInitialData()}
+              onNavigate={handleNavigate}
             />
           ) : currentView === "dashboard" ? (
             <DashboardView userProgress={userProgress!} currentSkills={skills} onNavigate={handleNavigate} />
@@ -221,14 +291,16 @@ export default function App() {
           ) : currentView === "projects" ? (
             <ProjectsView
               onOpenProject={(projectId: number) => {
-                setSelectedProjectId(projectId);
-                setCurrentView("project-editor");
+                const newParams = new URLSearchParams(searchParams);
+                newParams.set("view", "project-editor");
+                newParams.set("projectId", projectId.toString());
+                setSearchParams(newParams);
               }}
             />
           ) : currentView === "project-editor" && selectedProjectId ? (
             <ProjectEditorView
               projectId={selectedProjectId}
-              onSaveSuccess={() => setCurrentView("projects")} // 1. Pass this callback
+              onSaveSuccess={() => handleNavigate("projects")} // 1. Pass this callback
             />
           ) : (
             // ...

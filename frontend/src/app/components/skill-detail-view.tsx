@@ -17,9 +17,10 @@ interface SkillDetailViewProps {
   onBack: () => void;
   onUpdateStatus: (skillId: string, status: 'in-progress' | 'completed') => void;
   onRefresh?: () => void;
+  onNavigate: (view: string) => void;
 }
 
-export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: SkillDetailViewProps) {
+export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh, onNavigate }: SkillDetailViewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiContent, setAiContent] = useState<string | null>(skill.description);
   const [whyItMatters, setWhyItMatters] = useState(skill.whyItMatters);
@@ -151,6 +152,16 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: Sk
           >
             <CheckCircle2 className="w-4 h-4 mr-2" />
             Mark as Complete
+          </Button>
+        )}
+        {skill.status === 'completed' && (
+          <Button
+            onClick={() => onUpdateStatus(skill.id, 'in-progress')}
+            variant="outline"
+            className="border-[#4338ca] text-[#4338ca] hover:bg-[#4338ca]/10"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Revisit Lesson
           </Button>
         )}
       </div>
@@ -355,7 +366,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh }: Sk
               <p className="text-sm text-muted-foreground">
                 Apply what you've learned by building a real-world project from scratch.
               </p>
-              <Button variant="outline" className="mt-3" size="sm">
+              <Button onClick={() => onNavigate('projects')} variant="outline" className="mt-3" size="sm">
                 Start Project
               </Button>
             </div>

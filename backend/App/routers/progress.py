@@ -8,11 +8,33 @@ from typing import List
 
 router = APIRouter(prefix="/progress", tags=["Progress"])
 
+@router.post("/start/{lesson_id}")
+def start_lesson(
+    lesson_id: int,
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    progress = db.query(Progress).filter_by(
+        user_id=user_id,
+        lesson_id=lesson_id
+    ).first()
+
+    if not progress:
+        progress = Progress(user_id=user_id, lesson_id=lesson_id, completed=False)
+        db.add(progress)
+    else:
+        # Allow restarting/resetting if already exists (even if completed)
+        progress.completed = False
+        
+    db.commit()
+    
+    return {"status": "started"}
+
 @router.post("/complete/{lesson_id}")
 def complete_lesson(
     lesson_id: int,
     user_id: int,
-    time_spent: float,
+    time_spent: float = 0.0,
     db: Session = Depends(get_db)
 ):
     session = LearningSession(
@@ -67,26 +89,33 @@ def get_progress_overview(user_id: int, db: Session = Depends(get_db)):
             ).scalar() or 0
         weekly_data.append({"day": days[i], "hours": round(float(day_hours), 1)})
 
-    # Learning Trajectory (last 30 days cumulative)
-    thirty_days_ago = today - timedelta(days=30)
+    # Learning Trajectory (last 6 months or weeks - simplified to last 6 data points over 30 days)
+    start_date = today - timedelta(days=30)
     trajectory = []
     
-    # Base count of skills completed before the 30-day window
-    base_count = db.query(Progress).filter(
-        Progress.user_id == user_id,
-        Progress.completed == True
-        # Simplified: just count everything for now to show growth
-    ).count()
-
-    # For the last 5 milestones/points
-    for i in range(5):
-        point_date = thirty_days_ago + timedelta(days=i*6)
-        count = db.query(Progress).filter(
-            Progress.user_id == user_id,
-            Progress.completed == True
-            # In a real app, you'd filter by completion date
-        ).count()
-        trajectory.append({"month": point_date.strftime("%b %d"), "skills": count if i > 0 else 0})
+    # Generate 6 data points distributed over the last 30 days
+    for i in range(6):
+        # Calculate date for this point (every 6 days)
+        point_date = start_date + timedelta(days=i * 6)
+        
+        # Count skills completed ON or BEFORE this date
+        # (This attempts to show cumulative growth over time)
+        # Note: In a real production app we would join LearningSession or a 'completed_at' timestamp
+        # For now, we just mock the 'growth' by showing the current total count
+        # or properly we would query: count where updated_at <= point_date
+        
+        # Query actual historical data from LearningSession
+        # (Assuming distinct lessons completed by that date)
+        historical_count = db.query(LearningSession.lesson_id)\
+            .filter(
+                LearningSession.user_id == user_id, 
+                LearningSession.completed == True,
+                func.date(LearningSession.created_at) <= point_date
+            )\
+            .distinct()\
+            .count()
+            
+        trajectory.append({"month": point_date.strftime("%b %d"), "skills": historical_count})
 
     # Weekly streak
     seven_days_ago = datetime.utcnow() - timedelta(days=7)

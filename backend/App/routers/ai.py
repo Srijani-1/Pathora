@@ -145,13 +145,20 @@ async def generate_lesson_content(
                 {{
                     "title": "Resource Title",
                     "type": "video/article/practice",
-                    "url": "Provide a REAL, valid URL to a high-quality resource from YouTube, MDN Web Docs, or official documentation. DO NOT use example.com.",
+                    "url": "URL",
                     "duration": "e.g. 15 mins"
                 }}
             ]
         }}
         
-        CRITICAL: For 'resources', provide REAL links that exist. If you recommend a video, link to a popular YouTube video on the topic. If it's a guide, link to MDN or official docs.
+        CRITICAL RULES FOR URLS:
+        1. We will resolve specific URLs on the backend to ensure they are valid.
+        2. In the 'url' field, provide a specific SEARCH QUERY prefixed with 'SEARCH:'.
+        3. Examples:
+           - "url": "SEARCH: React useEffect hook tutorial" (for video)
+           - "url": "SEARCH: MDN Array map documentation" (for article)
+        4. Make the query very specific to get the best top result.
+        
         Ensure the 'content' markdown uses clear headings (h1, h2, h3) and professional formatting.
         Return ONLY the raw JSON string.
         """
@@ -171,6 +178,43 @@ async def generate_lesson_content(
         what_you_learn = json.dumps(data.get("what_you_learn", []))
         resources_data = data.get("resources", [])
         
+        # --- SERVER-SIDE URL RESOLUTION ---
+        from youtubesearchpython import VideosSearch
+        from googlesearch import search as gsearch
+        
+        for res in resources_data:
+            url_val = res.get("url", "").strip()
+            if url_val.startswith("SEARCH:"):
+                query = url_val.replace("SEARCH:", "").strip()
+                resolved_url = None
+                
+                try:
+                    if "video" in res.get("type", "").lower():
+                        # Search YouTube
+                        videosSearch = VideosSearch(query, limit = 1)
+                        results = videosSearch.result()
+                        if results and results['result']:
+                            resolved_url = results['result'][0]['link']
+                    else:
+                        # Search Google (Articles/Docs/Practice)
+                        # num_results/advanced might vary by version, using simple iterator
+                        search_results = list(gsearch(query, num_results=1, advanced=True))
+                        if search_results:
+                            resolved_url = search_results[0].url
+                except Exception as e:
+                    print(f"Search resolution failed for '{query}': {e}")
+                
+                # Assign resolved URL or fallback to search page
+                if resolved_url:
+                    res["url"] = resolved_url
+                else:
+                     # Fallback to search result page if resolution fails
+                    if "video" in res.get("type", "").lower():
+                        res["url"] = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
+                    else:
+                        res["url"] = f"https://www.google.com/search?q={query.replace(' ', '+')}"
+        # ----------------------------------
+        
         # Update lesson in database
         lesson.content = detailed_content
         lesson.why_it_matters = why_it_matters
@@ -180,7 +224,7 @@ async def generate_lesson_content(
         db.commit()
         
         return {
-            "message": "Content generated successfully via GPT-4", 
+            "message": "Content generated successfully via GPT-4 with Real-Time Validation", 
             "content": detailed_content,
             "why_it_matters": why_it_matters,
             "what_you_learn": data.get("what_you_learn", []),

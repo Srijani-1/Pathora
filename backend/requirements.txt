@@ -10,3 +10,4 @@ google-adk
 google-genai
 openai
 dotenv
+youtube-search-python googlesearch-python

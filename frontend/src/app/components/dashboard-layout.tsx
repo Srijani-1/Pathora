@@ -50,8 +50,8 @@ export function DashboardLayout({
     { id: 'skills', label: 'Skills', icon: BookOpen },
     { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'projects', label: 'Projects', icon: FolderKanban },
-    { id: 'profile', label: 'Profile', icon: User },
     { id: 'resources', label: 'Resources', icon: Library },
+    { id: 'profile', label: 'Profile', icon: User },
   ];
 
   const handleSendMessage = async () => {
@@ -146,9 +146,9 @@ export function DashboardLayout({
         <div className={`p-6 border-b border-border ${!sidebarOpen && 'hidden md:block md:p-3'}`}>
           <h2 className={`flex items-center gap-2 ${!sidebarOpen && 'md:justify-center'}`}>
             <div className="w-8 h-8 bg-gradient-to-br from-[#4338ca] to-[#7c3aed] rounded-lg flex items-center justify-center text-white flex-shrink-0">
-              L
+              P
             </div>
-            {sidebarOpen && <span>LearnPath</span>}
+            {sidebarOpen && <span>Pathora</span>}
           </h2>
         </div>
 

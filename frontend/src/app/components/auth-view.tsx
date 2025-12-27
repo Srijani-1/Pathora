@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -19,140 +19,91 @@ interface AuthViewProps {
 }
 
 export function AuthView({ onLogin }: AuthViewProps) {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({
+        x: e.clientX / window.innerWidth - 0.5,
+        y: e.clientY / window.innerHeight - 0.5,
+      });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Form States
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+
   const [registerName, setRegisterName] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [registerCountryCode, setRegisterCountryCode] = useState('+91'); // Default India
+  const [registerCountryCode, setRegisterCountryCode] = useState('+91');
   const [registerPhone, setRegisterPhone] = useState('');
+
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  // --- ADDED THIS STATE ---
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
 
-  // Validation error states
-  const [loginIdentifierError, setLoginIdentifierError] = useState('');
-  const [registerEmailError, setRegisterEmailError] = useState('');
-  const [registerPhoneError, setRegisterPhoneError] = useState('');
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   const countryCodes = [
+    { code: '+1', country: 'USA/Canada' },
+    { code: '+44', country: 'UK' },
     { code: '+91', country: 'India' },
-    { code: '+1', country: 'United States' },
-    { code: '+44', country: 'United Kingdom' },
+    { code: '+971', country: 'UAE' },
     { code: '+61', country: 'Australia' },
     { code: '+81', country: 'Japan' },
     { code: '+49', country: 'Germany' },
     { code: '+33', country: 'France' },
+    { code: '+7', country: 'Russia' },
+    { code: '+39', country: 'Italy' },
+    { code: '+34', country: 'Spain' },
+    { code: '+82', country: 'South Korea' },
     { code: '+86', country: 'China' },
     { code: '+55', country: 'Brazil' },
-    { code: '+7', country: 'Russia' },
+    { code: '+27', country: 'South Africa' },
+    // Add more if needed
   ];
-
-  const validateLoginIdentifier = (value: string) => {
-    if (value.trim() === '') {
-      setLoginIdentifierError('');
-      return;
-    }
-
-    if (value.includes('@')) {
-      if (!emailRegex.test(value)) {
-        setLoginIdentifierError('Invalid email format. Example: name@example.com');
-      } else {
-        setLoginIdentifierError('');
-      }
-    } else {
-      const digits = value.replace(/[^\d]/g, '');
-      if (digits.length > 0 && digits.length !== 10) {
-        setLoginIdentifierError('Phone number must have exactly 10 digits');
-      } else {
-        setLoginIdentifierError('');
-      }
-    }
-  };
-
-  const validateRegisterEmail = (value: string) => {
-    if (value.trim() === '') {
-      setRegisterEmailError('');
-      return;
-    }
-    if (!emailRegex.test(value)) {
-      setRegisterEmailError('Invalid email format. Example: name@example.com');
-    } else {
-      setRegisterEmailError('');
-    }
-  };
-
-  const validateRegisterPhone = (value: string) => {
-    const digits = value.replace(/[^\d]/g, '');
-    if (digits.length > 0 && digits.length !== 10) {
-      setRegisterPhoneError('Phone number must have exactly 10 digits');
-    } else {
-      setRegisterPhoneError('');
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginIdentifier.trim() || !loginPassword) {
-      toast.error('Please fill in all fields');
+    if (!loginIdentifier || !loginPassword) {
+      toast.error('Please enter credentials');
       return;
     }
-    if (loginIdentifierError) {
-      toast.error(loginIdentifierError);
-      return;
-    }
-
+    setIsLoading(true);
     try {
       const response = await fetch('http://localhost:8000/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: loginIdentifier.trim(), password: loginPassword }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Login failed');
-      }
-
       const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Login failed');
+
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('logged_in_user', JSON.stringify(data.user));
-
-      toast.success('Welcome back! 🎉');
+      toast.success('Welcome back!');
       onLogin(data.user.email, data.user.full_name);
     } catch (error: any) {
       toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!registerName.trim() || !registerEmail.trim() || !registerPassword || !registerConfirmPassword || !registerPhone.trim()) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-    if (registerEmailError || registerPhoneError) {
-      toast.error('Please fix the errors in the form');
-      return;
-    }
     if (registerPassword !== registerConfirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-    if (registerPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
-
-    const cleanedPhoneDigits = registerPhone.replace(/[^\d]/g, '');
-    const fullPhone = registerCountryCode + cleanedPhoneDigits;
-
+    setIsLoading(true);
     try {
+      const fullPhone = registerCountryCode + registerPhone.replace(/[^\d]/g, '');
       const response = await fetch('http://localhost:8000/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,221 +115,205 @@ export function AuthView({ onLogin }: AuthViewProps) {
           role: 'Student'
         }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Registration failed');
-      }
-
-      toast.success('Account created successfully! 🎉 Please login.');
+      if (!response.ok) throw new Error('Registration failed');
+      toast.success('Account created! Please sign in.');
       setActiveTab('login');
-      setLoginIdentifier(registerEmail);
-      setRegisterName('');
-      setRegisterEmail('');
-      setRegisterPassword('');
-      setRegisterConfirmPassword('');
-      setRegisterPhone('');
-      setRegisterCountryCode('+91');
-      setRegisterEmailError('');
-      setRegisterPhoneError('');
-      // --- RESET STATE ---
-      setShowRegisterConfirmPassword(false);
     } catch (error: any) {
       toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const inputHighlightClass = "bg-input-background border-b-2 border-b-primary/40 focus-visible:border-b-primary focus-visible:ring-0 transition-all";
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl items-center justify-center text-white text-2xl mb-4 shadow-2xl">
-            L
+    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4 relative overflow-hidden">
+
+      {/* --- GEOMETRIC BACKGROUND (10+ shapes) --- */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 academic-grid opacity-[0.15] dark:opacity-20" />
+
+        <div className="absolute rounded-full border border-primary/30 backdrop-blur-sm bg-gradient-to-br from-blue/20"
+          style={{ top: '5%', left: '5%', width: 160, height: 160, transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-full border border-primary/30 backdrop-blur-sm bg-gradient-to-br from-blue/20"
+          style={{ top: '98%', left: '3%', width: 160, height: 160, transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-full border border-primary/30 backdrop-blur-sm bg-gradient-to-br from-blue/20"
+          style={{ top: '69%', left: '78%', width: 160, height: 160, transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-full border border-primary/30 backdrop-blur-sm bg-gradient-to-br from-blue/20"
+          style={{ top: '20%', left: '34%', width: 160, height: 160, transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-full border border-violet/30 backdrop-blur-sm bg-gradient-to-tr from-violet/20"
+          style={{ bottom: '5%', right: '5%', width: 160, height: 160, transform: `translate(${mousePos.x * 30}px, ${mousePos.y * 20}px)` }} />
+
+        <div className="absolute rounded-lg bg-pink/20"
+          style={{ top: '10%', left: '35%', width: 80, height: 80, transform: `translate(${mousePos.x * -40}px, ${mousePos.y * -30}px) rotate(20deg)` }} />
+
+        <div className="absolute rounded-full bg-green/25 border border-green/20 backdrop-blur-sm"
+          style={{ bottom: '15%', left: '10%', width: 64, height: 64, transform: `translate(${mousePos.x * -25}px, ${mousePos.y * 15}px)` }} />
+
+        <div className="absolute rounded-xl bg-yellow/25 border border-yellow/20 backdrop-blur-sm"
+          style={{ top: '20%', right: '20%', width: 112, height: 48, transform: `translate(${mousePos.x * 35}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-xl bg-yellow/25 border border-yellow/20 backdrop-blur-sm"
+          style={{ top: '25%', right: '30%', width: 112, height: 48, transform: `translate(${mousePos.x * 35}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute bg-cyan/20 rotate-[30deg]"
+          style={{ bottom: '10%', right: '16%', width: 80, height: 80, transform: `translate(${mousePos.x * 25}px, ${mousePos.y * 30}px)` }} />
+
+        <div className="absolute rounded-md border border-purple/30 bg-purple/20"
+          style={{ top: '50%', left: '15%', width: 128, height: 128, transform: `translate(${mousePos.x * 15}px, ${mousePos.y * -10}px) rotate(45deg) translate(-50%, -50%)` }} />
+
+        <div className="absolute rounded-xl bg-yellow/25 border border-yellow/20 backdrop-blur-sm"
+          style={{ top: '34%', right: '20%', width: 112, height: 48, transform: `translate(${mousePos.x * 35}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-xl bg-red/20"
+          style={{ top: '33%', left: '3%', width: 80, height: 80, transform: `translate(${mousePos.x * 20}px, ${mousePos.y * -10}px)` }} />
+
+        <div className="absolute rounded-full border border-blue/30 bg-blue/20 backdrop-blur-sm"
+          style={{ top: '50%', right: '33%', width: 96, height: 96, transform: `translate(${mousePos.x * 10}px, ${mousePos.y * 25}px)` }} />
+
+        <div className="absolute rounded-xl bg-red/20"
+          style={{ top: '33%', right: '33%', width: 80, height: 80, transform: `translate(${mousePos.x * 20}px, ${mousePos.y * -10}px)` }} />
+
+        <div className="absolute rounded-xl bg-red/20"
+          style={{ bottom: '33%', right: '33%', width: 80, height: 80, transform: `translate(${mousePos.x * 20}px, ${mousePos.y * -10}px)` }} />
+
+        <div className="absolute rounded-xl bg-red/20"
+          style={{ top: '24%', left: '33%', width: 80, height: 80, transform: `translate(${mousePos.x * 20}px, ${mousePos.y * -10}px)` }} />
+
+        <div className="absolute rounded-lg bg-green/15"
+          style={{ bottom: '33%', left: '50%', width: 112, height: 48, transform: `translate(${mousePos.x * -15}px, ${mousePos.y * -20}px)` }} />
+
+        <div className="absolute rounded-full bg-pink/15 border border-pink/25"
+          style={{ top: '15%', left: '60%', width: 64, height: 64, transform: `translate(${mousePos.x * 25}px, ${mousePos.y * 10}px)` }} />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-6">
+          <div className="inline-flex w-14 h-14 bg-primary rounded-2xl items-center justify-center text-primary-foreground text-2xl mb-4 shadow-xl border-b-4 border-primary/40 font-bold">
+            P
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Pathora</h1>
-          <p className="text-white/70">Navigate your structured skill development</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Pathora</h1>
         </div>
 
-        <Card className="border-white/10 bg-white/5 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="text-white">Welcome</CardTitle>
-            <CardDescription className="text-white/60">
-              Sign in to your account or create a new one
-            </CardDescription>
+        <Card className="border-border bg-card/95 dark:bg-card/90 backdrop-blur-2xl shadow-2xl relative overflow-hidden border-t-0">
+
+          {/* TOP HIGHLIGHT BAR */}
+          <div className="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-blue via-violet to-blue z-50" />
+
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">Authentication</CardTitle>
+            <CardDescription>Master your learning journey</CardDescription>
           </CardHeader>
+
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-white/10">
-                <TabsTrigger
-                  value="login"
-                  // Added 'text-white/60' as the base color
-                  className="text-white/60 data-[state=active]:bg-white/20 data-[state=active]:text-white"
-                >
-                  Login
-                </TabsTrigger>
-                <TabsTrigger
-                  value="register"
-                  // Added 'text-white/60' as the base color
-                  className="text-white/60 data-[state=active]:bg-white/20 data-[state=active]:text-white"
-                >
-                  Register
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 p-1 border border-border">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
 
-              {/* Login Tab */}
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-6">
+              {/* LOGIN FORM */}
+              <TabsContent value="login" className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-identifier" className="text-white/90">Email or Phone</Label>
+                    <Label>Email or Phone</Label>
                     <Input
-                      id="login-identifier"
-                      type="text"
-                      placeholder="you@example.com or 1234567890"
+                      placeholder="you@example.com"
                       value={loginIdentifier}
-                      onChange={(e) => {
-                        setLoginIdentifier(e.target.value);
-                        validateLoginIdentifier(e.target.value);
-                      }}
-                      className={`bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400 ${loginIdentifierError ? 'border-red-500 focus:border-red-500' : ''}`}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      className={inputHighlightClass}
+                      disabled={isLoading}
                     />
-                    {loginIdentifierError && (
-                      <p className="text-red-400 text-sm mt-1">{loginIdentifierError}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-white/90">Password</Label>
+                    <Label>Password</Label>
                     <div className="relative">
                       <Input
-                        id="login-password"
                         type={showLoginPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400"
+                        className={`${inputHighlightClass} pr-10`}
+                        disabled={isLoading}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-                      >
-                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 shadow-lg">
+                  <Button type="submit" className="w-full bg-primary font-semibold" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Log In
                   </Button>
                 </form>
               </TabsContent>
 
-              {/* Register Tab */}
-              <TabsContent value="register">
-                <form onSubmit={handleRegister} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-name" className="text-white/90">Full Name</Label>
-                    <Input
-                      id="register-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400"
-                    />
+              {/* REGISTER FORM */}
+              <TabsContent value="register" className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Full Name</Label>
+                    <Input value={registerName} placeholder="Jane Doe" className={`${inputHighlightClass} h-9`} onChange={(e) => setRegisterName(e.target.value)} disabled={isLoading} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email" className="text-white/90">Email</Label>
-                    <Input
-                      id="register-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={registerEmail}
-                      onChange={(e) => {
-                        setRegisterEmail(e.target.value);
-                        validateRegisterEmail(e.target.value);
-                      }}
-                      className={`bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400 ${registerEmailError ? 'border-red-500 focus:border-red-500' : ''}`}
-                    />
-                    {registerEmailError && (
-                      <p className="text-red-400 text-sm mt-1">{registerEmailError}</p>
-                    )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Email</Label>
+                    <Input type="email" value={registerEmail} placeholder="jane@example.com" className={`${inputHighlightClass} h-9`} onChange={(e) => setRegisterEmail(e.target.value)} disabled={isLoading} />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-white/90">Phone Number</Label>
-                    <div className="flex gap-3">
-                      <Select value={registerCountryCode} onValueChange={setRegisterCountryCode}>
-                        <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
-                          <SelectValue placeholder="Code" />
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Phone Number</Label>
+                    <div className="flex gap-2">
+                      <Select value={registerCountryCode} onValueChange={setRegisterCountryCode} disabled={isLoading}>
+                        <SelectTrigger className="w-24 bg-input-background border-border border-b-2 border-b-primary/40 h-9">
+                          <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/20">
-                          {countryCodes.map((cc) => (
-                            <SelectItem key={cc.code} value={cc.code} className="text-white hover:bg-white/10">
-                              {cc.country} ({cc.code})
-                            </SelectItem>
+                        <SelectContent className="bg-popover/98 backdrop-blur-xl border-border z-[100] max-h-[200px]">
+                          {countryCodes.map(cc => (
+                            <SelectItem key={cc.code} value={cc.code}>{cc.code} ({cc.country})</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex-1">
+                      <Input placeholder="1234567890" value={registerPhone} className={`${inputHighlightClass} flex-1 h-9`} onChange={(e) => setRegisterPhone(e.target.value)} disabled={isLoading} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Password</Label>
+                      <div className="relative">
+                        <Input type={showRegisterPassword ? 'text' : 'password'} value={registerPassword} className={`${inputHighlightClass} h-9 pr-10`} onChange={(e) => setRegisterPassword(e.target.value)} disabled={isLoading} />
+                        <button type="button" onClick={() => setShowRegisterPassword(!showRegisterPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          {showRegisterPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Confirm</Label>
+                      <div className="relative">
                         <Input
-                          type="tel"
-                          placeholder="1234567890"
-                          value={registerPhone}
-                          onChange={(e) => {
-                            setRegisterPhone(e.target.value);
-                            validateRegisterPhone(e.target.value);
-                          }}
-                          className={`bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400 ${registerPhoneError ? 'border-red-500 focus:border-red-500' : ''}`}
+                          type={showRegisterConfirmPassword ? 'text' : 'password'}
+                          value={registerConfirmPassword}
+                          className={`${inputHighlightClass} h-9 pr-10`}
+                          onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                          disabled={isLoading}
                         />
-                        {registerPhoneError && (
-                          <p className="text-red-400 text-sm mt-1">{registerPhoneError}</p>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setShowRegisterConfirmPassword(!showRegisterConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showRegisterConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password" className="text-white/90">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-password"
-                        type={showRegisterPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-                      >
-                        {showRegisterPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* --- UPDATED CONFIRM PASSWORD SECTION --- */}
-                  <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password" className="text-white/90">Confirm Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-confirm-password"
-                        type={showRegisterConfirmPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={registerConfirmPassword}
-                        onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                        className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-cyan-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegisterConfirmPassword(!showRegisterConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-                      >
-                        {showRegisterConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 shadow-lg">
-                    Create Account
+                  <Button type="submit" className="w-full bg-primary mt-2 font-semibold" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Register
                   </Button>
                 </form>
               </TabsContent>

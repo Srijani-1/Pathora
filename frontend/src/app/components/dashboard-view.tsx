@@ -15,6 +15,14 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ userProgress, currentSkills, onNavigate }: DashboardViewProps) {
+  if (!userProgress) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   const inProgressSkill = currentSkills.find(s => s.id === userProgress.inProgressSkills[0]);
   const upcomingSkills = currentSkills.filter(s => s.status === 'upcoming').slice(0, 3);
   const completionPercentage = Math.round(
