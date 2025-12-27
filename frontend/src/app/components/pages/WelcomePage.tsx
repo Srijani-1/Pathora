@@ -19,7 +19,7 @@ export default function WelcomePage({ onFinish }: WelcomePageProps) {
             initial={{ opacity: 0.4, y: 100 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="text-center relative z-10 max-w-5xl px-6"
+            className="text-center relative z-10 max-w-5xl px-6 translate-y-4 md:translate-y-16"
           >
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-gradient-to-br from-slate-200 to-slate-400 bg-clip-text text-transparent">
               Welcome to Pathora
@@ -38,7 +38,7 @@ export default function WelcomePage({ onFinish }: WelcomePageProps) {
       </section>
 
       {/* ================= VALUE HERO ================= */}
-      <section className="py-20 md:py-32 flex items-center justify-center px-6 -mt-16 md:-mt-24">
+      <section className="py-20 md:py-32 flex items-center justify-center px-6 -mt-24 md:-mt-32">
         <motion.div
           className="max-w-4xl text-center"
           initial={{ opacity: 0, y: 30 }}

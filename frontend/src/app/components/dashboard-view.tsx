@@ -32,7 +32,7 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
-        <h1>Welcome back! 👋</h1>
+        <h1 className="text-3xl font-bold">Welcome back! 👋</h1>
         <p className="text-muted-foreground mt-1">
           You're making great progress on your learning journey
         </p>

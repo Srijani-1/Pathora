@@ -265,3 +265,42 @@ async def chat_with_ai(req: schemas.ChatRequest):
     return {
         "reply": response.choices[0].message.content.strip()
     }
+
+@router.post("/generate-quiz", response_model=schemas.QuizResponse)
+async def generate_quiz(req: schemas.QuizRequest):
+    client = get_openai_client()
+    
+    prompt = f"""
+    Create a {req.difficulty} level multiple-choice quiz about '{req.topic}' with {req.question_count} questions.
+    
+    Return a VALID JSON object with this exact structure:
+    {{
+        "title": "Quiz Title",
+        "questions": [
+            {{
+                "id": 1,
+                "question": "Question text here?",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "correct_index": 0,  // The index (0-3) of the correct option
+                "explanation": "Brief explanation of why the answer is correct."
+            }}
+        ]
+    }}
+    
+    Ensure options are plausible. Return ONLY raw JSON.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a quiz generator that outputs strictly structured JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        return json.loads(response.choices[0].message.content.strip())
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quiz generation failed: {str(e)}")

@@ -65,7 +65,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
-        <h1>Your Progress</h1>
+        <h1 className="text-3xl font-bold">Your Progress</h1>
         <p className="text-muted-foreground mt-1">
           Track your learning journey and achievements
         </p>
@@ -175,10 +175,12 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--card)',
+                    backgroundColor: '#fff',
+                    color: '#000',
                     border: '1px solid var(--border)',
                     borderRadius: '8px'
                   }}
+                  itemStyle={{ color: '#000' }}
                 />
                 <Bar dataKey="hours" fill="#4338ca" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -219,10 +221,12 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--card)',
+                    backgroundColor: '#fff',
+                    color: '#000',
                     border: '1px solid var(--border)',
                     borderRadius: '8px'
                   }}
+                  itemStyle={{ color: '#000' }}
                 />
                 <Legend verticalAlign="bottom" height={36} />
               </PieChart>
@@ -252,10 +256,12 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--card)',
+                    backgroundColor: '#fff',
+                    color: '#000',
                     border: '1px solid var(--border)',
                     borderRadius: '8px'
                   }}
+                  itemStyle={{ color: '#000' }}
                 />
                 <Line
                   type="monotone"

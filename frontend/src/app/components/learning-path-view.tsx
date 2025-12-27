@@ -208,7 +208,7 @@ export function LearningPathView({
               >
                 <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex-1">
-                    <CardTitle className="text-base truncate">{path.title}</CardTitle>
+                    <CardTitle className="text-lg font-bold truncate">{path.title}</CardTitle>
                     <CardDescription className="line-clamp-1 text-xs">{path.description}</CardDescription>
                   </div>
                   {path.id === currentPathId && (
@@ -240,7 +240,7 @@ export function LearningPathView({
       {skills.length > 0 && (
         <>
           <div className="pt-4 pb-2 border-b">
-            <h2 className="text-xl font-bold">Your Current Path</h2>
+            <h2 className="text-3xl font-bold">Your Current Path</h2>
           </div>
           {/* Progress Overview */}
           <Card className="border-[#4338ca]/20 shadow-md">
@@ -285,7 +285,7 @@ export function LearningPathView({
           <div className="space-y-8">
             {Object.entries(groupedSkills).map(([category, categorySkills]) => (
               <div key={category}>
-                <h2 className="mb-4">{category}</h2>
+                <h2 className="mb-4 text-2xl font-bold">{category}</h2>
                 <div className="space-y-4">
                   {categorySkills.map((skill, index) => (
                     <div key={skill.id} className="flex gap-3 md:gap-4">

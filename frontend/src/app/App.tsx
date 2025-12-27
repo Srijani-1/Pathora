@@ -13,6 +13,7 @@ import { ProgressView } from "./components/progress-view";
 import { ResourcesView } from "./components/resources-view";
 import { ProfileView } from "./components/profile-view";
 import { ProjectsView } from "./components/projects-view";
+import { QuizView } from "./components/quiz-view";
 import { apiFetch } from "./lib/api";
 import { BookOpen } from "lucide-react";
 import WelcomePage from "./components/pages/WelcomePage";
@@ -28,6 +29,7 @@ type View =
   | "resources"
   | "profile"
   | "projects"
+  | "quiz"
   | "project-editor";
 
 export default function App() {
@@ -287,7 +289,8 @@ export default function App() {
             <ResourcesView />
           ) : currentView === "profile" ? (
             <ProfileView userEmail={userEmail} userName={userName} onLogout={handleLogout} onUpdateProfile={async (name) => { const userData = JSON.parse(localStorage.getItem("logged_in_user") || "{}"); userData.full_name = name; localStorage.setItem("logged_in_user", JSON.stringify(userData)); setUserName(name); toast.success("Profile updated"); }} />
-            // ... inside App.tsx where you render ProjectEditorView
+          ) : currentView === "quiz" ? (
+            <QuizView />
           ) : currentView === "projects" ? (
             <ProjectsView
               onOpenProject={(projectId: number) => {

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { LayoutDashboard, Map, BookOpen, TrendingUp, Library, Moon, Sun, Menu, MessageCircle, X, Sparkles, User, FolderKanban, Send } from 'lucide-react';
+import { LayoutDashboard, Map, BookOpen, TrendingUp, Library, Moon, Sun, Menu, MessageCircle, X, Sparkles, User, FolderKanban, Send, BrainCircuit } from 'lucide-react';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -50,6 +50,7 @@ export function DashboardLayout({
     { id: 'skills', label: 'Skills', icon: BookOpen },
     { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'projects', label: 'Projects', icon: FolderKanban },
+    { id: 'quiz', label: 'Quiz', icon: BrainCircuit },
     { id: 'resources', label: 'Resources', icon: Library },
     { id: 'profile', label: 'Profile', icon: User },
   ];

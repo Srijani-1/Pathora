@@ -115,7 +115,7 @@ export function SkillDetailView({ skill, onBack, onUpdateStatus, onRefresh, onNa
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
-            <h1>{skill.title}</h1>
+            <h1 className="text-4xl font-bold">{skill.title}</h1>
             {!aiContent && <p className="text-muted-foreground mt-1">{skill.description}</p>}
           </div>
           <Badge className={getStatusColor(skill.status)}>

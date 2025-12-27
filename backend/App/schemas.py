@@ -172,3 +172,19 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+class QuizRequest(BaseModel):
+    topic: str
+    difficulty: str
+    question_count: int = 5
+
+class QuizQuestion(BaseModel):
+    id: int
+    question: str
+    options: List[str]
+    correct_index: int
+    explanation: str
+
+class QuizResponse(BaseModel):
+    title: str
+    questions: List[QuizQuestion]
