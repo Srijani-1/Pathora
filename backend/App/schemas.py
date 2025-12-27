@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 class RoleEnum(str, Enum):
@@ -113,6 +113,7 @@ class ProjectCreate(BaseModel):
     difficulty: str
     estimated_hours: str
     technologies: str
+    files: Optional[Dict[str, str]] = None # Add this
 
 class ProjectOut(BaseModel):
     id: int
@@ -123,6 +124,7 @@ class ProjectOut(BaseModel):
     start_date: datetime
     estimated_hours: str
     technologies: str
+    files: Optional[Dict[str, str]] = {} # Add this
     user_id: int
 
     model_config = ConfigDict(from_attributes=True)

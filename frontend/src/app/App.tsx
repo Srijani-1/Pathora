@@ -17,6 +17,7 @@ import { BookOpen } from "lucide-react";
 import WelcomePage from "./components/pages/WelcomePage";
 import { UserProgress, Skill } from "./types/learning";
 import { toast } from "sonner";
+import { ProjectEditorView } from "./components/pages/ProjectWorkspace";
 
 type View =
   | "dashboard"
@@ -25,7 +26,8 @@ type View =
   | "progress"
   | "resources"
   | "profile"
-  | "projects";
+  | "projects"
+  | "project-editor";
 
 export default function App() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -40,6 +42,7 @@ export default function App() {
   const [currentPathId, setCurrentPathId] = useState<number | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
   // Fetch data after login
   const fetchInitialData = async (forceLatest = false) => {
@@ -61,7 +64,7 @@ export default function App() {
         const initialPathId = forceLatest
           ? pathsData[pathsData.length - 1].id
           : currentPathId ||
-            (savedPathId ? parseInt(savedPathId) : pathsData[pathsData.length - 1].id);
+          (savedPathId ? parseInt(savedPathId) : pathsData[pathsData.length - 1].id);
 
         const path =
           pathsData.find((p: any) => p.id === initialPathId) ||
@@ -81,12 +84,12 @@ export default function App() {
             prerequisites: lesson.prerequisites_list || [],
             resources: lesson.ai_resources
               ? JSON.parse(lesson.ai_resources).map((r: any, idx: number) => ({
-                  id: `ai-res-${lesson.id}-${idx}`,
-                  title: r.title,
-                  type: r.type,
-                  url: r.url,
-                  duration: r.duration,
-                }))
+                id: `ai-res-${lesson.id}-${idx}`,
+                title: r.title,
+                type: r.type,
+                url: r.url,
+                duration: r.duration,
+              }))
               : [],
             whyItMatters: lesson.why_it_matters || "This skill is essential for your career path.",
             whatYouLearn: lesson.what_you_learn
@@ -214,9 +217,21 @@ export default function App() {
             <ResourcesView />
           ) : currentView === "profile" ? (
             <ProfileView userEmail={userEmail} userName={userName} onLogout={handleLogout} onUpdateProfile={async (name) => { const userData = JSON.parse(localStorage.getItem("logged_in_user") || "{}"); userData.full_name = name; localStorage.setItem("logged_in_user", JSON.stringify(userData)); setUserName(name); toast.success("Profile updated"); }} />
+            // ... inside App.tsx where you render ProjectEditorView
           ) : currentView === "projects" ? (
-            <ProjectsView />
+            <ProjectsView
+              onOpenProject={(projectId: number) => {
+                setSelectedProjectId(projectId);
+                setCurrentView("project-editor");
+              }}
+            />
+          ) : currentView === "project-editor" && selectedProjectId ? (
+            <ProjectEditorView
+              projectId={selectedProjectId}
+              onSaveSuccess={() => setCurrentView("projects")} // 1. Pass this callback
+            />
           ) : (
+            // ...
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                 <BookOpen className="w-8 h-8 text-muted-foreground" />

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, Boolean, Float, JSON
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -101,6 +101,7 @@ class Project(Base):
     start_date = Column(DateTime(timezone=True), server_default=func.now())
     estimated_hours = Column(String)
     technologies = Column(String) 
+    files = Column(JSON, nullable=True, default={})
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="projects")
 

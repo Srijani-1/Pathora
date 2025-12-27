@@ -19,6 +19,13 @@ def create_project(data: ProjectCreate, user_id: int, db: Session = Depends(get_
 def get_user_projects(user_id: int, db: Session = Depends(get_db)):
     return db.query(Project).filter(Project.user_id == user_id).all()
 
+@router.get("/{project_id}", response_model=ProjectOut)
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
 @router.put("/{project_id}/status")
 def update_project_status(project_id: int, status: str, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -36,3 +43,17 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.delete(project)
     db.commit()
     return {"message": "Deleted"}
+
+@router.put("/{project_id}", response_model=ProjectOut)
+def update_project(project_id: int, data: ProjectCreate, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Update all fields provided in the request
+    for key, value in data.dict().items():
+        setattr(project, key, value)
+    
+    db.commit()
+    db.refresh(project)
+    return project

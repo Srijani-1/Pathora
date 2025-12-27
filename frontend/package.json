@@ -8,6 +8,8 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
+    "@codesandbox/sandpack-themes": "^2.0.21",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -61,6 +63,7 @@
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "remark-gfm": "^4.0.1",
+    "sandpack-file-explorer": "^0.0.7",
     "sonner": "2.0.3",
     "tailwind-merge": "^3.2.0",
     "vaul": "1.1.2"

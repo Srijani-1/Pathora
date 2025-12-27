@@ -23,7 +23,11 @@ interface Project {
   technologies: string[];
 }
 
-export function ProjectsView() {
+type ProjectsViewProps = {
+  onOpenProject: (projectId: number) => void;
+};
+
+export function ProjectsView({ onOpenProject }: ProjectsViewProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,7 +115,8 @@ export function ProjectsView() {
     }
   };
 
-  const handleStartProject = async (projectId: string) => {
+  const handleStartProject = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
     try {
       await apiFetch(`/projects/${projectId}/status?status=in-progress`, {
         method: 'PUT'
@@ -125,7 +130,8 @@ export function ProjectsView() {
     }
   };
 
-  const handleCompleteProject = async (projectId: string) => {
+  const handleCompleteProject = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
     try {
       await apiFetch(`/projects/${projectId}/status?status=completed`, {
         method: 'PUT'
@@ -134,6 +140,21 @@ export function ProjectsView() {
         p.id === projectId ? { ...p, status: 'completed' as const } : p
       ));
       toast.success('Project completed! Amazing work! 🎉');
+    } catch (error) {
+      toast.error('Failed to update project status');
+    }
+  };
+
+  const handleReopenProject = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation(); // Prevent opening the editor
+    try {
+      await apiFetch(`/projects/${projectId}/status?status=in-progress`, {
+        method: 'PUT'
+      });
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, status: 'in-progress' as const } : p
+      ));
+      toast.success('Project reopened! 🚀');
     } catch (error) {
       toast.error('Failed to update project status');
     }
@@ -260,7 +281,11 @@ export function ProjectsView() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={project.id}
+              className="hover:shadow-md transition-shadow"
+              onClick={() => onOpenProject(Number(project.id))}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <Code2 className="w-5 h-5 text-[#4338ca] flex-shrink-0 mt-1" />
@@ -301,7 +326,7 @@ export function ProjectsView() {
                 <div className="flex gap-2">
                   {project.status === 'planning' && (
                     <Button
-                      onClick={() => handleStartProject(project.id)}
+                      onClick={(e) => handleStartProject(e, project.id)} // Pass 'e'
                       className="flex-1 bg-[#4338ca] hover:bg-[#4338ca]/90"
                       size="sm"
                     >
@@ -311,7 +336,7 @@ export function ProjectsView() {
                   )}
                   {project.status === 'in-progress' && (
                     <Button
-                      onClick={() => handleCompleteProject(project.id)}
+                      onClick={(e) => handleCompleteProject(e, project.id)} // Pass 'e'
                       className="flex-1 bg-green-600 hover:bg-green-700"
                       size="sm"
                     >
@@ -319,15 +344,17 @@ export function ProjectsView() {
                       Mark Complete
                     </Button>
                   )}
+
+                  {/* --- UPDATED THIS SECTION --- */}
                   {project.status === 'completed' && (
                     <Button
-                      disabled
-                      className="flex-1"
+                      onClick={(e) => handleReopenProject(e, project.id)}
+                      className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                       size="sm"
                       variant="outline"
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Completed
+                      <PlayCircle className="w-4 h-4 mr-2" />
+                      Reopen Project
                     </Button>
                   )}
                 </div>

@@ -209,10 +209,18 @@ export function AuthView({ onLogin }: AuthViewProps) {
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-white/10">
-                <TabsTrigger value="login" className="data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                <TabsTrigger
+                  value="login"
+                  // Added 'text-white/60' as the base color
+                  className="text-white/60 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                >
                   Login
                 </TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                <TabsTrigger
+                  value="register"
+                  // Added 'text-white/60' as the base color
+                  className="text-white/60 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                >
                   Register
                 </TabsTrigger>
               </TabsList>
