@@ -9,8 +9,8 @@ router = APIRouter(prefix="/learning-paths", tags=["Learning Paths"])
 
 # CREATE
 @router.post("/", response_model=LearningPathOut)
-def create_learning_path(data: LearningPathCreate, db: Session = Depends(get_db)):
-    path = LearningPath(**data.dict())
+def create_learning_path(data: LearningPathCreate,user_id:int, db: Session = Depends(get_db)):
+    path = LearningPath(**data.dict(),creator_id=user_id)
     db.add(path)
     db.commit()
     db.refresh(path)
@@ -19,7 +19,9 @@ def create_learning_path(data: LearningPathCreate, db: Session = Depends(get_db)
 # GET ALL
 @router.get("/", response_model=List[LearningPathOut])
 def get_all_learning_paths(user_id: int = None, db: Session = Depends(get_db)):
-    paths = db.query(LearningPath).all()
+    paths = db.query(LearningPath).filter(
+        LearningPath.creator_id == user_id
+    ).all()
     if not user_id:
         return paths
 
@@ -49,7 +51,7 @@ def get_learning_path(
     user_id: int,
     db: Session = Depends(get_db)
 ):
-    path = db.query(LearningPath).filter(LearningPath.id == path_id).first()
+    path = db.query(LearningPath).filter(LearningPath.id == path_id, LearningPath.creator_id==user_id).first()
     if not path:
         raise HTTPException(404, "Learning path not found")
 

@@ -5,7 +5,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Separator } from './ui/separator';
-import { User, Mail, Calendar, LogOut, Edit2, Check, X } from 'lucide-react';
+import { User, Mail, Calendar, LogOut, Edit2, Check, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProfileViewProps {
@@ -26,10 +26,26 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
     }
 
     try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/users/profile/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ full_name: editedName.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Update failed');
+      }
+
       await onUpdateProfile(editedName);
       setIsEditing(false);
-    } catch (error) {
-      toast.error('Failed to update profile');
+      toast.success('Profile updated');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
     }
   };
 
@@ -38,13 +54,44 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
     setIsEditing(false);
   };
 
+  const handleDeleteAccount = () => {
+    toast.warning("Delete your account?", {
+      description: "This action is permanent. All your data will be lost.",
+      action: {
+        label: "Delete Permanently",
+        onClick: async () => {
+          try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:8000/users/profile', {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+
+            // Status 204 means success with no content. 
+            // Do NOT call response.json() here or it will error.
+            if (response.status === 204 || response.ok) {
+              toast.success('Account deleted successfully');
+              onLogout(); // Clears localStorage and redirects
+            } else {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Deletion failed');
+            }
+          } catch (error: any) {
+            toast.error(error.message || 'Failed to delete account');
+          }
+        },
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => { },
+      },
+    });
+  };
+
   const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const joinedDate = localStorage.getItem('user_joined_date') || new Date().toISOString();
@@ -53,7 +100,7 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl mb-2">Profile Settings</h1>
-        <p className="text-muted-foreground">Manage your account information and preferences</p>
+        <p className="text-muted-foreground">Manage your account information</p>
       </div>
 
       <Card>
@@ -91,29 +138,15 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
                   className={!isEditing ? 'bg-muted' : ''}
                 />
                 {!isEditing ? (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsEditing(true)}
-                  >
+                  <Button variant="outline" size="icon" onClick={() => setIsEditing(true)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
                 ) : (
                   <>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleSave}
-                      className="text-green-600"
-                    >
+                    <Button variant="outline" size="icon" onClick={handleSave} className="text-green-600">
                       <Check className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleCancel}
-                      className="text-red-600"
-                    >
+                    <Button variant="outline" size="icon" onClick={handleCancel} className="text-red-600">
                       <X className="w-4 h-4" />
                     </Button>
                   </>
@@ -122,27 +155,14 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
             </div>
 
             <div className="grid gap-2">
-              <Label className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Email Address
-              </Label>
+              <Label className="flex items-center gap-2"><Mail className="w-4 h-4" />Email</Label>
               <Input value={userEmail} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed
-              </p>
             </div>
 
             <div className="grid gap-2">
-              <Label className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Member Since
-              </Label>
+              <Label className="flex items-center gap-2"><Calendar className="w-4 h-4" />Joined</Label>
               <Input
-                value={new Date(joinedDate).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
+                value={new Date(joinedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 disabled
                 className="bg-muted"
               />
@@ -156,15 +176,21 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
           <CardTitle>Account Actions</CardTitle>
           <CardDescription>Manage your account</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button
-            variant="destructive"
-            onClick={onLogout}
-            className="w-full sm:w-auto"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Log Out
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button variant="outline" onClick={onLogout} className="flex-1 sm:flex-none">
+              <LogOut className="w-4 h-4 mr-2" /> Log Out
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteAccount} className="flex-1 sm:flex-none">
+              <Trash2 className="w-4 h-4 mr-2" /> Delete Account
+            </Button>
+          </div>
+          <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+            <p className="text-sm text-destructive font-medium">Danger Zone</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Deleting your account will remove all data associated with {userEmail}.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

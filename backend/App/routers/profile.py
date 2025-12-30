@@ -5,6 +5,7 @@ from ..database import get_db
 from ..core.auth import get_current_user
 from ..schemas import UserResponse,UserProfileUpdate,UserProfile
 from sqlalchemy import func
+from ..models import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -97,3 +98,58 @@ def get_user_by_id(
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
+
+@router.patch("/{user_id}/complete-onboarding")
+def complete_onboarding(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 🚫 Prevent duplicate generation
+    existing_path = db.query(models.LearningPath).filter(
+        models.LearningPath.creator_id == user_id
+    ).first()
+
+    if not existing_path:
+        # Generate learning path ONCE
+        from .ai import generate_learning_path
+        generate_learning_path(
+            schemas.PathGenerationRequest(
+                topic=user.career_goal,
+                difficulty=user.experience_level,
+                weeks=12,
+                hours_per_week=int(user.weekly_hours),
+                user_id=user.id
+            ),
+            db
+        )
+
+    user.is_onboarded = True
+    db.commit()
+
+    return {
+        "status": "success",
+        "is_onboarded": True,
+        "learning_path_ready": True
+    }
+
+
+@router.delete("/profile", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    try:
+        db.delete(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete account: {str(e)}"
+        )
+    return None
