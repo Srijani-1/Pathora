@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+python-jose
+bcrypt
+python-dotenv
+pydantic
+google-adk
+google-genai
+openai
+dotenv
+youtube-search-python googlesearch-python
