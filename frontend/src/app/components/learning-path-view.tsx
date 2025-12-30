@@ -10,7 +10,7 @@ import { Button } from './ui/button';
 import {
   CheckCircle2, Circle, Lock, Clock,
   ArrowRight, PlayCircle, Sparkles, Loader2, BrainCircuit,
-  Map as MapIcon, BookOpen
+  Map as MapIcon, BookOpen, Trash2
 } from 'lucide-react';
 import { Skill } from '../types/learning';
 
@@ -59,6 +59,7 @@ export function LearningPathView({
           user_id: user.id
         })
       });
+      await onRefresh();
       toast.success('Your custom learning path is ready! 🚀');
       onRefresh(); // Trigger App.tsx to reload the new skills
       setTopic('');
@@ -68,7 +69,33 @@ export function LearningPathView({
       setIsGenerating(false);
     }
   };
+  const handleDeletePath = async (pathId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop card from switching while trying to delete
 
+    // Show a confirmation toast with an action button
+    toast.warning("Delete Learning Path?", {
+      description: "This will permanently remove all progress for this path.",
+      action: {
+        label: "Confirm Delete",
+        onClick: async () => {
+          try {
+            // Perform the actual delete call
+            await apiFetch(`/learning-paths/${pathId}`, {
+              method: 'DELETE',
+            });
+            toast.success('Learning path deleted successfully');
+            onRefresh(); // Refresh the list in App.tsx
+          } catch (error: any) {
+            toast.error(error.message || 'Failed to delete path');
+          }
+        },
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => console.log("Deletion cancelled"),
+      },
+    });
+  };
   const completedCount = skills.filter(s => s.status === 'completed').length;
   const totalCount = skills.length;
   const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -99,7 +126,7 @@ export function LearningPathView({
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1>AI Learning Agent</h1>
           <p className="text-muted-foreground mt-1">
@@ -200,25 +227,44 @@ export function LearningPathView({
             {allPaths.map((path) => (
               <Card
                 key={path.id}
-                className={`transition-all border-2 cursor-pointer hover:shadow-md ${path.id === currentPathId
+                // ADD 'group' and 'relative' HERE
+                className={`group relative transition-all border-2 cursor-pointer hover:shadow-md ${path.id === currentPathId
                   ? 'border-[#4338ca] bg-[#4338ca]/5 shadow-sm'
                   : 'border-border'
                   }`}
                 onClick={() => onSwitchPath(path.id)}
               >
+                {/* DELETE BUTTON */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  // Ensure z-index is high enough to be clickable over the card
+                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                  onClick={(e) => handleDeletePath(path.id, e)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+
                 <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-bold truncate">{path.title}</CardTitle>
-                    <CardDescription className="line-clamp-1 text-xs">{path.description}</CardDescription>
+                  <div className="flex-1 pr-8"> {/* Add padding right so text doesn't hide under the trash icon */}
+                    <CardTitle className="text-lg font-bold break-words line-clamp-2">
+                      {path.title}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-1 text-xs">
+                      {path.description}
+                    </CardDescription>
                   </div>
                   {path.id === currentPathId && (
                     <Badge className="bg-[#4338ca] text-white text-[10px] h-5">ACTIVE</Badge>
                   )}
                 </CardHeader>
+
                 <CardContent className="p-4 pt-0">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Badge variant="outline" className="capitalize text-[10px] h-5">{path.difficulty}</Badge>
+                      <Badge variant="outline" className="capitalize text-[10px] h-5">
+                        {path.difficulty}
+                      </Badge>
                       <span className="flex items-center gap-1">
                         <BookOpen className="w-3 h-3" />
                         {path.modules?.length || 0} Modules
@@ -323,13 +369,13 @@ export function LearningPathView({
                         <CardHeader>
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                             <div className="flex-1">
-                              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                              <CardTitle className="flex items-center gap-2 text-base md:text-lg whitespace-normal break-words">
                                 {skill.title}
                                 {skill.status === 'completed' && (
                                   <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-[#10b981] flex-shrink-0" />
                                 )}
                               </CardTitle>
-                              <CardDescription className="mt-1">
+                              <CardDescription className="mt-1 break-words whitespace-normal line-clamp-3">
                                 {skill.description.includes('#') || skill.description.length > 200
                                   ? skill.description.replace(/#[^\n]*\n/g, '').split('\n\n')[0].slice(0, 150) + '...'
                                   : skill.description}
