@@ -21,7 +21,7 @@ def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email/phone"
+            detail="User not registered!"
         )
 
     # ✅ verify password
