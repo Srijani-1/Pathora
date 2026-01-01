@@ -19,13 +19,36 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
     );
   }
 
+  const completedSkillsInView = skills.filter(skill =>
+    userProgress.completedSkills.includes(skill.id)
+  );
+
   const completionPercentage =
     skills.length === 0
       ? 0
       : Math.round(
-        (userProgress.completedSkills.length / skills.length) * 100
+        (completedSkillsInView.length / skills.length) * 100
       );
 
+  // DYNAMIC MILESTONE LOGIC (Synchronized with Dashboard)
+  const dynamicMilestones = userProgress.milestones.map((m) => {
+    let isAchieved = false;
+    const completedCount = completedSkillsInView.length;
+
+    if (m.title === "First Step") {
+      isAchieved = completedCount >= 1;
+    } else if (m.title === "Skill Collector") {
+      isAchieved = completedCount >= 5;
+    } else if (m.title === "Knowledge Seeker") {
+      isAchieved = userProgress.totalHoursSpent >= 10;
+    }
+    return {
+      ...m,
+      achievedDate: isAchieved ? m.achievedDate || new Date().toISOString() : null
+    };
+  });
+
+  const achievedMilestonesCount = dynamicMilestones.filter(m => m.achievedDate).length;
 
   // Weekly progress data
   const weeklyData = [
@@ -42,25 +65,30 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
   const statusData = [
     {
       name: 'Completed',
-      value: skills.filter(s => s.status === 'completed').length,
+      value: completedSkillsInView.length,
       color: '#10b981'
     },
     {
       name: 'In Progress',
-      value: skills.filter(s => s.status === 'in-progress').length,
+      value: skills.filter(s => s.status === 'in-progress' || (userProgress.inProgressSkills.includes(s.id) && !userProgress.completedSkills.includes(s.id))).length,
       color: '#f59e0b'
     },
     {
       name: 'Upcoming',
-      value: skills.filter(s => s.status === 'upcoming').length,
+      value: skills.length - completedSkillsInView.length - skills.filter(s => s.status === 'in-progress').length,
       color: '#14b8a6'
     },
   ];
 
   // Monthly progress trend
-  const monthlyData = [
-    { month: 'Start', skills: 0 },
-  ];
+  // For a truly dynamic trajectory, we'd need history, but for now we'll keep it as is 
+  // or adjust the final point to match current completion.
+  const trajectoryData = userProgress.trajectory.map((t, idx) => {
+    if (idx === userProgress.trajectory.length - 1) {
+      return { ...t, skills: completedSkillsInView.length };
+    }
+    return t;
+  });
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -85,7 +113,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <p className="text-sm text-muted-foreground mt-1">
               {skills.length === 0
                 ? 'No skills available'
-                : `${userProgress.completedSkills.length} of ${skills.length} skills`}
+                : `${completedSkillsInView.length} of ${skills.length} skills`}
             </p>
 
           </CardContent>
@@ -140,9 +168,9 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-[#7c3aed]" />
               <span className="text-2xl font-semibold">
-                {userProgress.milestones.filter(m => m.achievedDate).length}
+                {achievedMilestonesCount}
               </span>
-              <span className="text-muted-foreground">/ {userProgress.milestones.length}</span>
+              <span className="text-muted-foreground">/ {dynamicMilestones.length}</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               Achievements unlocked
@@ -244,7 +272,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={userProgress.trajectory}>
+              <LineChart data={trajectoryData}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis
                   dataKey="month"
@@ -296,7 +324,7 @@ export function ProgressView({ userProgress, skills }: ProgressViewProps) {
                   <p className="text-sm text-muted-foreground">Total mastered</p>
                 </div>
               </div>
-              <span className="text-2xl font-semibold">{userProgress.completedSkills.length}</span>
+              <span className="text-2xl font-semibold">{completedSkillsInView.length}</span>
             </div>
 
             <div className="flex items-center justify-between py-3 border-b border-border">

@@ -30,6 +30,24 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
     ? Math.round((completedInCurrentPath / currentSkills.length) * 100)
     : 0;
 
+  // 2. DYNAMIC MILESTONE LOGIC:
+  // We recreate the milestone list to be 100% reactive to the CURRENT path stats.
+  const dynamicMilestones = userProgress.milestones.map((m) => {
+    let isAchieved = false;
+
+    if (m.title === "First Step") {
+      isAchieved = completedInCurrentPath >= 1;
+    } else if (m.title === "Skill Collector") {
+      isAchieved = completedInCurrentPath >= 5;
+    } else if (m.title === "Knowledge Seeker") {
+      isAchieved = userProgress.totalHoursSpent >= 10;
+    }
+    return {
+      ...m,
+      achievedDate: isAchieved ? m.achievedDate || new Date().toISOString() : null
+    };
+  });
+
   const inProgressSkill = currentSkills.find(s => s.id === userProgress.inProgressSkills[0]);
   const upcomingSkills = currentSkills.filter(s => s.status === 'upcoming').slice(0, 3);
 
@@ -209,32 +227,37 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
             <CardDescription>Your achievements and progress</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {userProgress.milestones.map((milestone) => {
+            {dynamicMilestones.map((milestone) => {
               const Icon = milestone.icon === 'Trophy' ? Trophy :
                 milestone.icon === 'Flame' ? Flame :
                   milestone.icon === 'Clock' ? Clock : Target;
+
+              const isAchieved = !!milestone.achievedDate;
+
               return (
                 <div
                   key={milestone.id}
-                  className={`p-3 rounded-lg border ${milestone.achievedDate
+                  className={`p-3 rounded-lg border transition-all duration-300 ${isAchieved
                     ? 'bg-[#10b981]/5 border-[#10b981]/20'
-                    : 'border-border bg-muted/50'
+                    : 'border-border bg-muted/50 grayscale' // Grayscale makes it look "locked"
                     }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${milestone.achievedDate
+                    <div className={`p-2 rounded-lg ${isAchieved
                       ? 'bg-[#10b981]/10'
                       : 'bg-muted'
                       }`}>
-                      <Icon className={`w-5 h-5 ${milestone.achievedDate
+                      <Icon className={`w-5 h-5 ${isAchieved
                         ? 'text-[#10b981]'
                         : 'text-muted-foreground'
                         }`} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{milestone.title}</p>
-                        {milestone.achievedDate && (
+                        <p className={`font-medium ${!isAchieved && 'text-muted-foreground'}`}>
+                          {milestone.title}
+                        </p>
+                        {isAchieved && (
                           <CheckCircle2 className="w-4 h-4 text-[#10b981]" />
                         )}
                       </div>
