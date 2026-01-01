@@ -100,7 +100,7 @@ def get_user_by_id(
     return user
 
 @router.patch("/{user_id}/complete-onboarding")
-def complete_onboarding(user_id: int, db: Session = Depends(get_db)):
+async def complete_onboarding(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -113,12 +113,12 @@ def complete_onboarding(user_id: int, db: Session = Depends(get_db)):
     if not existing_path:
         # Generate learning path ONCE
         from .ai import generate_learning_path
-        generate_learning_path(
+        await generate_learning_path(
             schemas.PathGenerationRequest(
                 topic=user.career_goal,
                 difficulty=user.experience_level,
                 weeks=12,
-                hours_per_week=int(user.weekly_hours),
+                hours_per_week=int(user.weekly_hours or "10"),
                 user_id=user.id
             ),
             db

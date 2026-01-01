@@ -25,6 +25,7 @@ class UserResponse(BaseModel):
     email: str
     phone: str
     role: RoleEnum
+    is_onboarded: bool
     model_config = ConfigDict(from_attributes=True)
 
 class UserProfile(BaseModel):
@@ -37,6 +38,7 @@ class UserProfile(BaseModel):
     career_goal: Optional[str] = None
     experience_level: Optional[str] = None
     weekly_hours: Optional[str] = None
+    is_onboarded: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 class UserProfileUpdate(BaseModel):

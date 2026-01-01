@@ -49,8 +49,9 @@ export default function App() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Sync URL -> State (Enables Browser Navigation)
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const viewParam = searchParams.get("view");
     const skillParam = searchParams.get("skillId");
     const projectParam = searchParams.get("projectId");
@@ -60,17 +61,15 @@ export default function App() {
     } else if (!viewParam && currentView !== "dashboard") {
       setCurrentView("dashboard");
     }
-
     if (skillParam !== selectedSkillId) {
       setSelectedSkillId(skillParam);
     }
-
     if (projectParam && parseInt(projectParam) !== selectedProjectId) {
       setSelectedProjectId(parseInt(projectParam));
     } else if (!projectParam && selectedProjectId) {
       setSelectedProjectId(null);
     }
-  }, [searchParams, currentView, selectedSkillId, selectedProjectId]);
+  }, [searchParams, currentView, selectedSkillId, selectedProjectId, isAuthenticated]);
 
   // Fetch data after login
   const fetchInitialData = async (forceLatest = false) => {
@@ -137,6 +136,21 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Load auth
+    const userStr = localStorage.getItem("logged_in_user");
+    const token = localStorage.getItem("access_token");
+    if (userStr && token) {
+      const user = JSON.parse(userStr);
+      setIsAuthenticated(true);
+      setUserEmail(user.email);
+      setUserName(user.full_name);
+
+      const onboardingComplete = localStorage.getItem("onboarding_complete");
+      setHasCompletedOnboarding(onboardingComplete === "true");
+
+      fetchInitialData();
+    }
+
     // Load theme
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
     if (savedTheme) {
@@ -148,34 +162,39 @@ export default function App() {
   const handleWelcomeFinish = () => setShowWelcome(false);
 
   // LOGIN callback - correctly sets states and fetches user data
-  const handleLogin = async (email: string, name: string) => {
-    // 1. Check onboarding status immediately to prevent flicker
-    const onboardingComplete = localStorage.getItem("onboarding_complete");
-    if (onboardingComplete === "true") {
+  const handleLogin = async (data: any) => {
+    const isCompleted = data.is_onboarded;
+
+    if (isCompleted) {
       setHasCompletedOnboarding(true);
+      localStorage.setItem("onboarding_complete", "true");
       setCurrentView("dashboard");
     } else {
       setHasCompletedOnboarding(false);
+      localStorage.removeItem("onboarding_complete");
     }
 
-    // 2. Set authenticated state (now the view will be correct)
     setIsAuthenticated(true);
-    setUserEmail(email);
-    setUserName(name);
+    setUserEmail(data.email);
+    setUserName(data.full_name);
+    setSearchParams({});
 
-    // 3. Fetch data in background (don't block UI transition)
     await fetchInitialData();
   };
 
   const handleLogout = () => {
     localStorage.removeItem("logged_in_user");
     localStorage.removeItem("access_token");
-    //localStorage.removeItem("onboarding_complete");
+    localStorage.removeItem("onboarding_complete");
+    localStorage.removeItem("selected_path_id");
+
     setIsAuthenticated(false);
     setUserEmail("");
     setUserName("");
     setHasCompletedOnboarding(false);
     setCurrentView("dashboard");
+    setSearchParams({});
+
     toast.success("Logged out successfully");
   };
 

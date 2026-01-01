@@ -44,6 +44,7 @@ def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
             "full_name": user.full_name,  # decrypt for API response
             "email": user.email,
             "phone": user.phone,
-            "role": user.role
+            "role": user.role,
+            "is_onboarded": user.is_onboarded
         }
     }

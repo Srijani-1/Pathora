@@ -23,11 +23,15 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
     );
   }
 
+  const completedInCurrentPath = currentSkills.filter(skill =>
+    userProgress.completedSkills.includes(skill.id)
+  ).length;
+  const completionPercentage = currentSkills.length > 0
+    ? Math.round((completedInCurrentPath / currentSkills.length) * 100)
+    : 0;
+
   const inProgressSkill = currentSkills.find(s => s.id === userProgress.inProgressSkills[0]);
   const upcomingSkills = currentSkills.filter(s => s.status === 'upcoming').slice(0, 3);
-  const completionPercentage = Math.round(
-    (userProgress.completedSkills.length / currentSkills.length) * 100
-  );
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -53,7 +57,7 @@ export function DashboardView({ userProgress, currentSkills, onNavigate }: Dashb
             </div>
             <Progress value={completionPercentage} className="h-2" />
             <p className="text-sm text-muted-foreground mt-2">
-              {userProgress.completedSkills.length} of {currentSkills.length} skills
+              {completedInCurrentPath} of {currentSkills.length} skills
             </p>
           </CardContent>
         </Card>

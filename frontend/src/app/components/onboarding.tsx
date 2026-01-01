@@ -56,17 +56,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           })
         });
 
-        // 2. Trigger AI Path Generation using Gemini Agent
+        // 2. Mark onboarding as complete and trigger AI path generation
         const goalLabel = careerGoals.find(g => g.id === data.careerGoal)?.label || data.careerGoal;
-        await apiFetch('/ai/generate-path', {
-          method: 'POST',
-          body: JSON.stringify({
-            topic: goalLabel,
-            difficulty: data.level,
-            weeks: 12, // Defaulting to 12 weeks for the first path
-            hours_per_week: parseInt(data.weeklyHours),
-            user_id: user.id
-          })
+        await apiFetch(`/users/${user.id}/complete-onboarding`, {
+          method: 'PATCH'
         });
 
         toast.success(`Agent successfully designed your ${goalLabel} path! 🚀`);

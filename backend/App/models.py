@@ -18,6 +18,7 @@ class User(Base):
     career_goal = Column(String)
     experience_level = Column(String)
     weekly_hours = Column(String)
+    is_onboarded = Column(Boolean, default=False)
 
     learning_paths = relationship("LearningPath", back_populates="creator", cascade="all, delete-orphan")
     progress = relationship("Progress", back_populates="user", cascade="all, delete-orphan")

@@ -15,7 +15,7 @@ import {
 } from './ui/select';
 
 interface AuthViewProps {
-  onLogin: (email: string, name: string) => void;
+  onLogin: (user: any) => void;
 }
 
 export function AuthView({ onLogin }: AuthViewProps) {
@@ -87,7 +87,7 @@ export function AuthView({ onLogin }: AuthViewProps) {
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('logged_in_user', JSON.stringify(data.user));
       toast.success('Welcome back!');
-      onLogin(data.user.email, data.user.full_name);
+      onLogin(data.user);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -97,13 +97,36 @@ export function AuthView({ onLogin }: AuthViewProps) {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Basic Field Presence Check
+    if (!registerName || !registerEmail || !registerPhone || !registerPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    // 2. Email Format Validation (Proper email check)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(registerEmail.trim())) {
+      toast.error('Please enter a valid email address (e.g., name@example.com)');
+      return;
+    }
+
+    // 3. Phone Number Validation (Exactly 10 digits)
+    const cleanPhone = registerPhone.replace(/[^\d]/g, ''); // Remove any non-digit chars
+    if (cleanPhone.length !== 10) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    // 4. Password Match Check
     if (registerPassword !== registerConfirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
+
     setIsLoading(true);
     try {
-      const fullPhone = registerCountryCode + registerPhone.replace(/[^\d]/g, '');
+      const fullPhone = registerCountryCode + cleanPhone;
       const response = await fetch('http://localhost:8000/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,10 +138,26 @@ export function AuthView({ onLogin }: AuthViewProps) {
           role: 'Student'
         }),
       });
-      if (!response.ok) throw new Error('Registration failed');
-      toast.success('Account created! Please sign in.');
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Pull the specific error message ("Email already registered", etc.) from backend
+        throw new Error(data.detail || 'Registration failed');
+      }
+
+      toast.success('Account created! Please log in.');
       setActiveTab('login');
+
+      // Reset fields
+      setRegisterName('');
+      setRegisterEmail('');
+      setRegisterPhone('');
+      setRegisterPassword('');
+      setRegisterConfirmPassword('');
+
     } catch (error: any) {
+      // This will now show "Email already registered" instead of "Registration failed"
       toast.error(error.message);
     } finally {
       setIsLoading(false);
