@@ -17,7 +17,14 @@ export default defineConfig({
     },
   },
   server: {
+    // This allows the Vite development server to be accessed externally
     host: '0.0.0.0',
-    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000', // The backend's local address on the VM
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
-})
+});
