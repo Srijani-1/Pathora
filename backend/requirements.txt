@@ -4,10 +4,15 @@ sqlalchemy
 psycopg2-binary
 python-jose
 bcrypt
+passlib
+cryptography
+python-multipart
 python-dotenv
 pydantic
 google-adk
 google-genai
 openai
 dotenv
-youtube-search-python googlesearch-python
+youtube-search-python
+googlesearch-python
+gunicorn
