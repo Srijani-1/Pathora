@@ -39,6 +39,7 @@ https://round-purse-information-perspective.trycloudflare.com/
 
 ## 📂 Project Structure
 
+```bash
 Pathora/
 ├── backend/
 │   ├── app/
@@ -49,6 +50,7 @@ Pathora/
 │   ├── package.json
 │   └── vite.config.ts
 └── README.md
+```
 
 ---
 
