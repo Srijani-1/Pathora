@@ -16,3 +16,4 @@ dotenv
 youtube-search-python
 googlesearch-python
 gunicorn
+pydantic[email]
