@@ -39,7 +39,6 @@ https://round-purse-information-perspective.trycloudflare.com/
 
 ## 📂 Project Structure
 
-```bash
 Pathora/
 ├── backend/
 │   ├── app/
