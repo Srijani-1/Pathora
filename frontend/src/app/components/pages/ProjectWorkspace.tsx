@@ -30,7 +30,7 @@ function SaveButton({ projectId, projectMetadata, onSaveSuccess }: { projectId: 
             });
 
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:8000/projects/${projectId}`, {
+            const response = await fetch(`/api/projects/${projectId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

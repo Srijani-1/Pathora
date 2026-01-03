@@ -27,7 +27,7 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/users/profile/update', {
+      const response = await fetch('/api/users/profile/update', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export function ProfileView({ userEmail, userName, onLogout, onUpdateProfile }: 
         onClick: async () => {
           try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/users/profile', {
+            const response = await fetch('/api/users/profile', {
               method: 'DELETE',
               headers: {
                 'Authorization': `Bearer ${token}`
