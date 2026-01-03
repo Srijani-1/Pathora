@@ -56,27 +56,29 @@ Pathora/
 
 ## 🚀 How to Run Pathora Locally
 #🔹 Backend Setup
-Navigate to the backend folder:
+1. Navigate to the backend folder:
 cd backend
 
-Install dependencies:
+2. Install dependencies:
 pip install -r requirements.txt
 
-Run the FastAPI server:
+3. Run the FastAPI server:
 uvicorn app.main:app --reload
+
 
 Backend will start at:
 http://localhost:8000
 
 #🔹 Frontend Setup
-Navigate to the frontend folder:
+1. Navigate to the frontend folder:
 cd frontend
 
-Install dependencies:
+2. Install dependencies:
 npm install
 
-Start the development server:
+3. Start the development server:
 npm run dev
+
 
 Frontend will start at:
 http://localhost:5173
@@ -84,10 +86,3 @@ http://localhost:5173
 # 🔗 Environment Variables (Optional)
 Create a .env file in the frontend directory if required:
 VITE_API_BASE_URL=http://localhost:8000
-
----
-
-## Future Improvements
-1.Advanced AI-based recommendations
-2. Community discussion features
-3. Better analytics and progress insights
